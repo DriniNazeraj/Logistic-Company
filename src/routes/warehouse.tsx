@@ -225,7 +225,7 @@ function WarehousePage() {
       <PageBody>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
           {/* ── Canvas ── */}
-          <div className="rounded-lg border border-border bg-card p-3">
+          <div className="min-w-0 rounded-lg border border-border bg-card p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="font-mono text-xs text-muted-foreground">
                 {warehouse.canvas_width} × {warehouse.canvas_height} &middot;{" "}
