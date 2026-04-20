@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
 import { formatMoney } from "@/lib/format";
 import { Truck, Package, Warehouse as WarehouseIcon, ArrowUpRight } from "lucide-react";
+import { autoTransitPendingCargos } from "@/lib/auto-transit";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +37,7 @@ function Index() {
   useEffect(() => {
     if (!user) return;
     (async () => {
+      await autoTransitPendingCargos();
       const [c, t, w, p] = await Promise.all([
         supabase.from("cargos").select("id", { count: "exact", head: true }),
         supabase

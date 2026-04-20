@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -8,6 +8,7 @@ import { MoneyInput } from "@/components/money-input";
 import { formatMoney, formatDate, shortId, Currency } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { autoTransitPendingCargos } from "@/lib/auto-transit";
 
 export const Route = createFileRoute("/cargo")({
   head: () => ({
@@ -52,6 +53,9 @@ function CargosPage() {
 
   const load = async () => {
     setBusy(true);
+
+    await autoTransitPendingCargos();
+
     const { data: cs, error } = await supabase
       .from("cargos")
       .select("*")
@@ -170,15 +174,13 @@ function CargosPage() {
               </thead>
               <tbody className="divide-y divide-border text-sm">
                 {filtered.map((c) => (
-                  <tr key={c.id} className="hover:bg-secondary/30">
+                  <tr
+                    key={c.id}
+                    className="cursor-pointer hover:bg-secondary/30"
+                    onClick={() => navigate({ to: "/package", search: { cargo: c.id } })}
+                  >
                     <td className="px-4 py-3 font-mono text-xs">
-                      <Link
-                        to="/cargo/$id"
-                        params={{ id: c.id }}
-                        className="hover:text-accent"
-                      >
-                        {c.cargo_code || shortId(c.id)}
-                      </Link>
+                      {c.cargo_code || shortId(c.id)}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-muted-foreground">{c.departure_country}</span>
@@ -198,7 +200,7 @@ function CargosPage() {
                     <td className="px-4 py-3">
                       <StatusBadge status={c.status} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" onClick={() => startEdit(c)}>
                           <Pencil className="h-3.5 w-3.5" />
@@ -245,8 +247,16 @@ function CargoForm({
   const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "EUR");
   const [busy, setBusy] = useState(false);
 
+  const today = new Date().toISOString().split("T")[0];
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!initial && dep && dep < today) {
+      return toast.error("Departure date cannot be in the past.");
+    }
+    if (dep && arr && arr < dep) {
+      return toast.error("Arrival date cannot be before the departure date.");
+    }
     setBusy(true);
     const payload = {
       cargo_code: code || `CRG-${Date.now().toString(36).toUpperCase()}`,
@@ -289,10 +299,10 @@ function CargoForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Departure date">
-          <Input type="date" value={dep ?? ""} onChange={(e) => setDep(e.target.value)} />
+          <Input type="date" value={dep ?? ""} min={initial ? undefined : today} onChange={(e) => { setDep(e.target.value); if (arr && e.target.value && arr < e.target.value) setArr(""); }} />
         </Field>
         <Field label="Arrival date">
-          <Input type="date" value={arr ?? ""} onChange={(e) => setArr(e.target.value)} />
+          <Input type="date" value={arr ?? ""} min={dep || undefined} onChange={(e) => setArr(e.target.value)} />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">

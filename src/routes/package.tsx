@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/package")({
+  validateSearch: (search: Record<string, unknown>): { cargo?: string } => ({
+    cargo: (search.cargo as string) || undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Packages — trans.al" },
@@ -36,6 +39,7 @@ interface Pkg {
 interface CargoOpt {
   id: string;
   cargo_code: string;
+  status: string;
 }
 
 interface WarehouseOpt {
@@ -59,8 +63,9 @@ function PackagesPage() {
   const [busy, setBusy] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Pkg | null>(null);
+  const { cargo: cargoParam } = Route.useSearch();
   const [query, setQuery] = useState("");
-  const [cargoFilter, setCargoFilter] = useState("all");
+  const [cargoFilter, setCargoFilter] = useState(cargoParam ?? "all");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -70,7 +75,7 @@ function PackagesPage() {
     setBusy(true);
     const [{ data: ps }, { data: cs }, { data: ws }, { data: ss }] = await Promise.all([
       supabase.from("packages").select("*").order("created_at", { ascending: false }),
-      supabase.from("cargos").select("id, cargo_code").order("created_at", { ascending: false }),
+      supabase.from("cargos").select("id, cargo_code, status").order("created_at", { ascending: false }),
       supabase.from("warehouses").select("id, name").order("name"),
       supabase.from("sections").select("id, name, warehouse_id").order("name"),
     ]);
@@ -394,14 +399,16 @@ function PackageForm({
           />
         </Field>
       </div>
-      <Field label="Related cargo">
+      <Field label="Related cargo" hint="Only pending cargos can be assigned.">
         <Select value={cargoId ?? ""} onChange={(e) => setCargoId(e.target.value)}>
           <option value="">Unassigned</option>
-          {cargos.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.cargo_code}
-            </option>
-          ))}
+          {cargos
+            .filter((c) => c.status === "pending" || c.id === initial?.cargo_id)
+            .map((c) => (
+              <option key={c.id} value={c.id} disabled={c.status !== "pending"}>
+                {c.cargo_code}{c.status !== "pending" ? ` (${c.status.replace("_", " ")})` : ""}
+              </option>
+            ))}
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
