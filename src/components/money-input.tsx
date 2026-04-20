@@ -15,23 +15,23 @@ export function MoneyInput({
   placeholder?: string;
 }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1">
       <Input
         type="number"
         step="0.01"
         value={amount}
         onChange={(e) => onAmountChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1"
+        className="min-w-0 flex-[3]"
       />
       <Select
         value={currency}
         onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-        className="w-[112px]"
+        className="flex-[1] min-w-[48px] max-w-[56px]"
       >
         {CURRENCIES.map((c) => (
           <option key={c.code} value={c.code}>
-            {c.flag} {c.code}
+            {c.flag}
           </option>
         ))}
       </Select>

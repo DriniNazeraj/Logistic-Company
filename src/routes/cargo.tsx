@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, StatusBadge, EmptyState } from "@/components/layout-primitives";
 import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-kit";
 import { MoneyInput } from "@/components/money-input";
-import { formatMoney, formatDate, shortId, Currency } from "@/lib/format";
+import { formatMoney, formatDate, shortId, Currency, currencyForCountry, convertTotals } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
@@ -167,7 +167,7 @@ function CargosPage() {
                   <th className="px-4 py-2.5 font-medium">Departure</th>
                   <th className="px-4 py-2.5 font-medium">Arrival</th>
                   <th className="px-4 py-2.5 font-medium">Packages</th>
-                  <th className="px-4 py-2.5 font-medium">Totals</th>
+                  <th className="px-4 py-2.5 font-medium">Total</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5"></th>
                 </tr>
@@ -193,9 +193,11 @@ function CargosPage() {
                     <td className="px-4 py-3 font-mono text-xs">
                       {Object.keys(c.totals).length === 0
                         ? "—"
-                        : Object.entries(c.totals)
-                            .map(([cur, amt]) => formatMoney(amt, cur))
-                            .join(" · ")}
+                        : (() => {
+                            const target = currencyForCountry(c.destination_country);
+                            const total = convertTotals(c.totals, target);
+                            return formatMoney(total, target);
+                          })()}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={c.status} />

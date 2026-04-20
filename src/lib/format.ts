@@ -56,3 +56,48 @@ export function statusLabel(s: string) {
 export function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
+
+/** Approximate exchange rates to EUR (base). */
+const TO_EUR: Record<Currency, number> = {
+  EUR: 1,
+  USD: 0.92,
+  ALL: 0.0093,
+};
+
+const FROM_EUR: Record<Currency, number> = {
+  EUR: 1,
+  USD: 1.09,
+  ALL: 107.5,
+};
+
+/** Country → default currency mapping. */
+const COUNTRY_CURRENCY: Record<string, Currency> = {
+  Albania: "ALL",
+  Kosovo: "EUR",
+  Italy: "EUR",
+  Germany: "EUR",
+  Greece: "EUR",
+  France: "EUR",
+  Turkey: "USD",
+  UK: "USD",
+};
+
+export function currencyForCountry(country: string): Currency {
+  return COUNTRY_CURRENCY[country] ?? "EUR";
+}
+
+/** Convert an amount from one currency to another. */
+export function convertCurrency(amount: number, from: Currency, to: Currency): number {
+  if (from === to) return amount;
+  const inEur = amount * TO_EUR[from];
+  return inEur * FROM_EUR[to];
+}
+
+/** Convert a totals map { EUR: 100, USD: 50 } into a single amount in the target currency. */
+export function convertTotals(totals: Record<string, number>, targetCurrency: Currency): number {
+  let sum = 0;
+  for (const [cur, amt] of Object.entries(totals)) {
+    sum += convertCurrency(amt, (cur as Currency) || "EUR", targetCurrency);
+  }
+  return sum;
+}
