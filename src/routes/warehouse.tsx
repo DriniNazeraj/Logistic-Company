@@ -1,20 +1,26 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState, FormEvent } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState, MouseEvent as RMouseEvent, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { PageHeader, PageBody, EmptyState } from "@/components/layout-primitives";
+import { PageHeader, PageBody } from "@/components/layout-primitives";
 import { Modal, Field, Input, Button, FormShell } from "@/components/ui-kit";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Warehouse as WarehouseIcon, ArrowRight } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Package as PackageIcon,
+  Settings,
+  Warehouse as WarehouseIcon,
+} from "lucide-react";
 
 export const Route = createFileRoute("/warehouse")({
   head: () => ({
     meta: [
-      { title: "Warehouses — trans.al" },
-      { name: "description", content: "Visually design warehouse layouts and sections." },
+      { title: "Warehouse — trans.al" },
+      { name: "description", content: "Manage your warehouse layout and sections." },
     ],
   }),
-  component: WarehousesPage,
+  component: WarehousePage,
 });
 
 interface Warehouse {
@@ -25,14 +31,42 @@ interface Warehouse {
   canvas_height: number;
 }
 
-function WarehousesPage() {
+interface Section {
+  id: string;
+  warehouse_id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface Pkg {
+  id: string;
+  package_code: string;
+  product_name: string;
+  section_id: string | null;
+}
+
+const COLORS = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#a855f7", "#ec4899", "#84cc16"];
+
+type DragState =
+  | { kind: "none" }
+  | { kind: "move"; id: string; offX: number; offY: number }
+  | { kind: "resize"; id: string; startX: number; startY: number; startW: number; startH: number };
+
+function WarehousePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [items, setItems] = useState<Warehouse[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [packages, setPackages] = useState<Pkg[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [busy, setBusy] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Warehouse | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -40,17 +74,42 @@ function WarehousesPage() {
 
   const load = async () => {
     setBusy(true);
-    const { data: ws } = await supabase
+
+    // Try to get the first warehouse
+    let { data: w } = await supabase
       .from("warehouses")
       .select("*")
-      .order("created_at", { ascending: false });
-    setItems(ws ?? []);
-    const { data: ss } = await supabase.from("sections").select("warehouse_id");
-    const c: Record<string, number> = {};
-    ss?.forEach((s) => {
-      c[s.warehouse_id] = (c[s.warehouse_id] ?? 0) + 1;
-    });
-    setCounts(c);
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    // Auto-create one if none exists
+    if (!w) {
+      const { data: created, error } = await supabase
+        .from("warehouses")
+        .insert({ name: "Main Warehouse", location: null, canvas_width: 1000, canvas_height: 600 })
+        .select()
+        .single();
+      if (error) {
+        toast.error(error.message);
+        setBusy(false);
+        return;
+      }
+      w = created;
+    }
+
+    const [{ data: ss }, { data: ps }] = await Promise.all([
+      supabase
+        .from("sections")
+        .select("*")
+        .eq("warehouse_id", w!.id)
+        .order("created_at", { ascending: true }),
+      supabase.from("packages").select("id, package_code, product_name, section_id"),
+    ]);
+
+    setWarehouse(w as Warehouse);
+    setSections(ss ?? []);
+    setPackages(ps ?? []);
     setBusy(false);
   };
 
@@ -58,112 +117,339 @@ function WarehousesPage() {
     if (user) load();
   }, [user]);
 
-  const remove = async (id: string) => {
-    if (!confirm("Delete warehouse and all its sections?")) return;
-    const { error } = await supabase.from("warehouses").delete().eq("id", id);
+  const sel = sections.find((s) => s.id === selected) ?? null;
+
+  /* ── Section CRUD ── */
+  const addSection = async () => {
+    if (!warehouse) return;
+    const color = COLORS[sections.length % COLORS.length];
+    const payload = {
+      warehouse_id: warehouse.id,
+      name: `Section ${String.fromCharCode(65 + sections.length)}`,
+      color,
+      x: 24,
+      y: 24,
+      width: 160,
+      height: 100,
+    };
+    const { data, error } = await supabase.from("sections").insert(payload).select().single();
     if (error) return toast.error(error.message);
-    toast.success("Warehouse deleted");
-    load();
+    setSections((prev) => [...prev, data as Section]);
+    setSelected((data as Section).id);
   };
 
+  const updateSection = (s: Section, patch: Partial<Section>) => {
+    setSections((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
+  };
+
+  const persistSection = async (s: Section) => {
+    const { error } = await supabase
+      .from("sections")
+      .update({
+        name: s.name,
+        color: s.color,
+        x: Math.round(s.x),
+        y: Math.round(s.y),
+        width: Math.round(s.width),
+        height: Math.round(s.height),
+      })
+      .eq("id", s.id);
+    if (error) toast.error(error.message);
+  };
+
+  const deleteSection = async (sectionId: string) => {
+    if (!confirm("Delete this section?")) return;
+    const { error } = await supabase.from("sections").delete().eq("id", sectionId);
+    if (error) return toast.error(error.message);
+    setSections((prev) => prev.filter((s) => s.id !== sectionId));
+    setSelected(null);
+    toast.success("Section deleted");
+  };
+
+  /* ── Drag / resize ── */
+  const onCanvasMouseMove = (e: RMouseEvent) => {
+    if (drag.kind === "none" || !canvasRef.current || !warehouse) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+
+    if (drag.kind === "move") {
+      const s = sections.find((x) => x.id === drag.id);
+      if (!s) return;
+      const nx = Math.max(0, Math.min(warehouse.canvas_width - s.width, px - drag.offX));
+      const ny = Math.max(0, Math.min(warehouse.canvas_height - s.height, py - drag.offY));
+      updateSection(s, { x: nx, y: ny });
+    } else if (drag.kind === "resize") {
+      const s = sections.find((x) => x.id === drag.id);
+      if (!s) return;
+      const nw = Math.max(60, Math.min(warehouse.canvas_width - s.x, drag.startW + (px - drag.startX)));
+      const nh = Math.max(40, Math.min(warehouse.canvas_height - s.y, drag.startH + (py - drag.startY)));
+      updateSection(s, { width: nw, height: nh });
+    }
+  };
+
+  const onCanvasMouseUp = async () => {
+    if (drag.kind === "none") return;
+    const s = sections.find((x) => x.id === drag.id);
+    setDrag({ kind: "none" });
+    if (s) await persistSection(s);
+  };
+
+  /* ── Render ── */
   if (!user) return null;
+
+  if (busy || !warehouse) {
+    return (
+      <>
+        <PageHeader title="Warehouse" />
+        <PageBody>
+          <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
+            Loading…
+          </div>
+        </PageBody>
+      </>
+    );
+  }
 
   return (
     <>
       <PageHeader
-        title="Warehouses"
-        description="Manage warehouses and design their physical layout."
+        title={warehouse.name}
+        description={warehouse.location || "Visual warehouse layout"}
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" /> New warehouse
+          <Button variant="secondary" onClick={() => setSettingsOpen(true)}>
+            <Settings className="h-4 w-4" /> Settings
           </Button>
         }
       />
       <PageBody>
-        {busy ? (
-          <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
-          </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            title="No warehouses yet"
-            description="Create your first warehouse to start designing its layout."
-            action={
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setOpen(true);
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+          {/* ── Canvas ── */}
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="font-mono text-xs text-muted-foreground">
+                {warehouse.canvas_width} × {warehouse.canvas_height} &middot;{" "}
+                {sections.length} section{sections.length === 1 ? "" : "s"}
+              </div>
+              <Button onClick={addSection}>
+                <Plus className="h-3.5 w-3.5" /> Add section
+              </Button>
+            </div>
+            <div className="overflow-auto rounded-md border border-border bg-background">
+              <div
+                ref={canvasRef}
+                onMouseMove={onCanvasMouseMove}
+                onMouseUp={onCanvasMouseUp}
+                onMouseLeave={onCanvasMouseUp}
+                onClick={(e) => {
+                  if (e.target === canvasRef.current) setSelected(null);
+                }}
+                className="grid-bg relative"
+                style={{
+                  width: warehouse.canvas_width,
+                  height: warehouse.canvas_height,
+                  minWidth: "100%",
                 }}
               >
-                <Plus className="h-4 w-4" /> New warehouse
-              </Button>
-            }
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((w) => (
-              <div
-                key={w.id}
-                className="group flex flex-col rounded-lg border border-border bg-card p-5"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-secondary">
-                    <WarehouseIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setEditing(w);
-                        setOpen(true);
+                {sections.map((s) => {
+                  const active = s.id === selected;
+                  const pkgsHere = packages.filter((p) => p.section_id === s.id).length;
+                  return (
+                    <div
+                      key={s.id}
+                      onMouseDown={(e) => {
+                        if (!canvasRef.current) return;
+                        const rect = canvasRef.current.getBoundingClientRect();
+                        setSelected(s.id);
+                        setDrag({
+                          kind: "move",
+                          id: s.id,
+                          offX: e.clientX - rect.left - s.x,
+                          offY: e.clientY - rect.top - s.y,
+                        });
+                      }}
+                      className={
+                        "absolute cursor-move select-none rounded-md border-2 transition-shadow " +
+                        (active ? "shadow-lg ring-2 ring-ring/60" : "")
+                      }
+                      style={{
+                        left: s.x,
+                        top: s.y,
+                        width: s.width,
+                        height: s.height,
+                        backgroundColor: s.color + "33",
+                        borderColor: s.color,
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" onClick={() => remove(w.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                      <div className="flex h-full flex-col p-2">
+                        <div className="text-xs font-semibold" style={{ color: s.color }}>
+                          {s.name}
+                        </div>
+                        <div className="mt-auto flex items-center justify-between">
+                          <div className="font-mono text-[10px] text-muted-foreground">
+                            {Math.round(s.width)}×{Math.round(s.height)}
+                          </div>
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                            <PackageIcon className="h-3 w-3" />
+                            {pkgsHere}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Resize handle */}
+                      <div
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          if (!canvasRef.current) return;
+                          const rect = canvasRef.current.getBoundingClientRect();
+                          setSelected(s.id);
+                          setDrag({
+                            kind: "resize",
+                            id: s.id,
+                            startX: e.clientX - rect.left,
+                            startY: e.clientY - rect.top,
+                            startW: s.width,
+                            startH: s.height,
+                          });
+                        }}
+                        className="absolute -bottom-1 -right-1 h-3 w-3 cursor-se-resize rounded-sm"
+                        style={{ backgroundColor: s.color }}
+                      />
+                    </div>
+                  );
+                })}
+                {sections.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <WarehouseIcon className="mx-auto h-8 w-8 text-muted-foreground/40" />
+                      <p className="mt-2 text-sm text-muted-foreground">No sections yet.</p>
+                      <p className="mt-1 text-xs text-muted-foreground/70">
+                        Click "Add section" to start dividing your warehouse.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <h3 className="mt-3 text-base font-semibold">{w.name}</h3>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {w.location || "No location"}
-                </div>
-                <div className="mt-4 border-t border-border pt-3">
-                  <div className="mb-3 font-mono text-xs text-muted-foreground">
-                    {counts[w.id] ?? 0} section{counts[w.id] === 1 ? "" : "s"} ·{" "}
-                    {w.canvas_width}×{w.canvas_height}
-                  </div>
-                  <Link
-                    to="/warehouse/$id"
-                    params={{ id: w.id }}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-                  >
-                    Open layout editor
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
+                )}
               </div>
-            ))}
+            </div>
           </div>
-        )}
+
+          {/* ── Side panel ── */}
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                {sel ? "Section properties" : "Select a section"}
+              </div>
+              {sel ? (
+                <div className="mt-3 space-y-3">
+                  <Field label="Name">
+                    <Input
+                      value={sel.name}
+                      onChange={(e) => updateSection(sel, { name: e.target.value })}
+                      onBlur={() => persistSection(sel)}
+                    />
+                  </Field>
+                  <Field label="Color">
+                    <div className="grid grid-cols-8 gap-1.5">
+                      {COLORS.map((c) => (
+                        <button
+                          key={c}
+                          onClick={async () => {
+                            updateSection(sel, { color: c });
+                            await persistSection({ ...sel, color: c });
+                          }}
+                          className={
+                            "h-6 w-6 rounded-md border-2 " +
+                            (sel.color === c ? "border-foreground" : "border-transparent")
+                          }
+                          style={{ backgroundColor: c }}
+                          aria-label={c}
+                        />
+                      ))}
+                    </div>
+                  </Field>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Width">
+                      <Input
+                        type="number"
+                        value={Math.round(sel.width)}
+                        onChange={(e) =>
+                          updateSection(sel, { width: Number(e.target.value) || 60 })
+                        }
+                        onBlur={() => persistSection(sel)}
+                      />
+                    </Field>
+                    <Field label="Height">
+                      <Input
+                        type="number"
+                        value={Math.round(sel.height)}
+                        onChange={(e) =>
+                          updateSection(sel, { height: Number(e.target.value) || 40 })
+                        }
+                        onBlur={() => persistSection(sel)}
+                      />
+                    </Field>
+                  </div>
+                  <Button
+                    variant="danger"
+                    className="w-full"
+                    onClick={() => deleteSection(sel.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete section
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Click a section on the canvas to edit it. Drag to move, drag the corner to resize.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Packages in section
+              </div>
+              {sel ? (
+                <ul className="mt-2 space-y-1 text-sm">
+                  {packages.filter((p) => p.section_id === sel.id).length === 0 ? (
+                    <li className="text-xs text-muted-foreground">
+                      No packages assigned. Assign from the Packages page.
+                    </li>
+                  ) : (
+                    packages
+                      .filter((p) => p.section_id === sel.id)
+                      .map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex items-center justify-between rounded-md border border-border bg-background px-2 py-1.5"
+                        >
+                          <span className="truncate">{p.product_name}</span>
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {p.package_code}
+                          </span>
+                        </li>
+                      ))
+                  )}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Select a section to see its packages.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       </PageBody>
 
+      {/* ── Warehouse settings modal ── */}
       <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title={editing ? "Edit warehouse" : "New warehouse"}
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        title="Warehouse settings"
       >
-        <WarehouseForm
-          initial={editing}
-          onSaved={() => {
-            setOpen(false);
-            load();
+        <WarehouseSettingsForm
+          warehouse={warehouse}
+          onSaved={(updated) => {
+            setWarehouse(updated);
+            setSettingsOpen(false);
           }}
         />
       </Modal>
@@ -171,46 +457,47 @@ function WarehousesPage() {
   );
 }
 
-function WarehouseForm({
-  initial,
+function WarehouseSettingsForm({
+  warehouse,
   onSaved,
 }: {
-  initial: Warehouse | null;
-  onSaved: () => void;
+  warehouse: Warehouse;
+  onSaved: (w: Warehouse) => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [location, setLocation] = useState(initial?.location ?? "");
-  const [w, setW] = useState(initial?.canvas_width ?? 1000);
-  const [h, setH] = useState(initial?.canvas_height ?? 600);
+  const [name, setName] = useState(warehouse.name);
+  const [location, setLocation] = useState(warehouse.location ?? "");
+  const [w, setW] = useState(warehouse.canvas_width);
+  const [h, setH] = useState(warehouse.canvas_height);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     const payload = { name, location: location || null, canvas_width: w, canvas_height: h };
-    const { error } = initial
-      ? await supabase.from("warehouses").update(payload).eq("id", initial.id)
-      : await supabase.from("warehouses").insert(payload);
+    const { error } = await supabase
+      .from("warehouses")
+      .update(payload)
+      .eq("id", warehouse.id);
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success(initial ? "Warehouse updated" : "Warehouse created");
-    onSaved();
+    toast.success("Warehouse updated");
+    onSaved({ ...warehouse, ...payload });
   };
 
   return (
     <FormShell onSubmit={submit}>
       <Field label="Name">
-        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Tirana Main" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Main Warehouse" />
       </Field>
       <Field label="Location">
         <Input
-          value={location ?? ""}
+          value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="Tirana, Albania"
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Canvas width" hint="Total layout width in px.">
+        <Field label="Canvas width" hint="Layout width in px.">
           <Input type="number" value={w} onChange={(e) => setW(Number(e.target.value))} min={400} />
         </Field>
         <Field label="Canvas height">
@@ -219,7 +506,7 @@ function WarehouseForm({
       </div>
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Saving…" : initial ? "Save changes" : "Create warehouse"}
+          {busy ? "Saving…" : "Save changes"}
         </Button>
       </div>
     </FormShell>

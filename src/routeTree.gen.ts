@@ -14,7 +14,6 @@ import { Route as PackageRouteImport } from './routes/package'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CargoRouteImport } from './routes/cargo'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as WarehouseIdRouteImport } from './routes/warehouse.$id'
 import { Route as CargoIdRouteImport } from './routes/cargo.$id'
 
 const WarehouseRoute = WarehouseRouteImport.update({
@@ -42,11 +41,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WarehouseIdRoute = WarehouseIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => WarehouseRoute,
-} as any)
 const CargoIdRoute = CargoIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -58,18 +52,16 @@ export interface FileRoutesByFullPath {
   '/cargo': typeof CargoRouteWithChildren
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
-  '/warehouse': typeof WarehouseRouteWithChildren
+  '/warehouse': typeof WarehouseRoute
   '/cargo/$id': typeof CargoIdRoute
-  '/warehouse/$id': typeof WarehouseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cargo': typeof CargoRouteWithChildren
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
-  '/warehouse': typeof WarehouseRouteWithChildren
+  '/warehouse': typeof WarehouseRoute
   '/cargo/$id': typeof CargoIdRoute
-  '/warehouse/$id': typeof WarehouseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +69,8 @@ export interface FileRoutesById {
   '/cargo': typeof CargoRouteWithChildren
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
-  '/warehouse': typeof WarehouseRouteWithChildren
+  '/warehouse': typeof WarehouseRoute
   '/cargo/$id': typeof CargoIdRoute
-  '/warehouse/$id': typeof WarehouseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,16 +81,8 @@ export interface FileRouteTypes {
     | '/package'
     | '/warehouse'
     | '/cargo/$id'
-    | '/warehouse/$id'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/cargo'
-    | '/login'
-    | '/package'
-    | '/warehouse'
-    | '/cargo/$id'
-    | '/warehouse/$id'
+  to: '/' | '/cargo' | '/login' | '/package' | '/warehouse' | '/cargo/$id'
   id:
     | '__root__'
     | '/'
@@ -108,7 +91,6 @@ export interface FileRouteTypes {
     | '/package'
     | '/warehouse'
     | '/cargo/$id'
-    | '/warehouse/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,7 +98,7 @@ export interface RootRouteChildren {
   CargoRoute: typeof CargoRouteWithChildren
   LoginRoute: typeof LoginRoute
   PackageRoute: typeof PackageRoute
-  WarehouseRoute: typeof WarehouseRouteWithChildren
+  WarehouseRoute: typeof WarehouseRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -156,13 +138,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/warehouse/$id': {
-      id: '/warehouse/$id'
-      path: '/$id'
-      fullPath: '/warehouse/$id'
-      preLoaderRoute: typeof WarehouseIdRouteImport
-      parentRoute: typeof WarehouseRoute
-    }
     '/cargo/$id': {
       id: '/cargo/$id'
       path: '/$id'
@@ -183,25 +158,22 @@ const CargoRouteChildren: CargoRouteChildren = {
 
 const CargoRouteWithChildren = CargoRoute._addFileChildren(CargoRouteChildren)
 
-interface WarehouseRouteChildren {
-  WarehouseIdRoute: typeof WarehouseIdRoute
-}
-
-const WarehouseRouteChildren: WarehouseRouteChildren = {
-  WarehouseIdRoute: WarehouseIdRoute,
-}
-
-const WarehouseRouteWithChildren = WarehouseRoute._addFileChildren(
-  WarehouseRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CargoRoute: CargoRouteWithChildren,
   LoginRoute: LoginRoute,
   PackageRoute: PackageRoute,
-  WarehouseRoute: WarehouseRouteWithChildren,
+  WarehouseRoute: WarehouseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
