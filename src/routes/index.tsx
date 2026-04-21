@@ -3,9 +3,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, convertTotals, loadExchangeRates } from "@/lib/format";
 import { Truck, Package, Warehouse as WarehouseIcon, ArrowUpRight } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,7 +27,11 @@ interface Stats {
   packages: number;
   warehouses: number;
   totalsByCurrency: Record<string, number>;
+  cargoByStatus: { name: string; value: number }[];
+  packagesByDay: { day: string; count: number }[];
 }
+
+const PIE_COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
 function Index() {
   const { user, loading } = useAuth();
@@ -38,7 +46,8 @@ function Index() {
     if (!user) return;
     (async () => {
       await autoTransitPendingCargos();
-      const [c, t, w, p] = await Promise.all([
+      await loadExchangeRates(supabase as never);
+      const [c, t, w, p, allCargos, allPkgs] = await Promise.all([
         supabase.from("cargos").select("id", { count: "exact", head: true }),
         supabase
           .from("cargos")
@@ -46,18 +55,51 @@ function Index() {
           .eq("status", "in_transit"),
         supabase.from("warehouses").select("id", { count: "exact", head: true }),
         supabase.from("packages").select("id, price, currency"),
+        supabase.from("cargos").select("status"),
+        supabase.from("packages").select("created_at"),
       ]);
       const totalsByCurrency: Record<string, number> = {};
       p.data?.forEach((x) => {
         const cur = (x as { currency?: string }).currency ?? "EUR";
         totalsByCurrency[cur] = (totalsByCurrency[cur] ?? 0) + Number(x.price ?? 0);
       });
+
+      // Cargo by status
+      const statusCounts: Record<string, number> = { pending: 0, in_transit: 0, delivered: 0 };
+      allCargos.data?.forEach((r) => {
+        const s = (r as { status: string }).status;
+        statusCounts[s] = (statusCounts[s] ?? 0) + 1;
+      });
+      const cargoByStatus = [
+        { name: "Pending", value: statusCounts.pending },
+        { name: "In Transit", value: statusCounts.in_transit },
+        { name: "Delivered", value: statusCounts.delivered },
+      ].filter((d) => d.value > 0);
+
+      // Packages created per day (last 7 days)
+      const today = new Date();
+      const days: { day: string; count: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        days.push({ day: d.toLocaleDateString("en-US", { weekday: "short" }), count: 0 });
+      }
+      allPkgs.data?.forEach((r) => {
+        const created = new Date((r as { created_at: string }).created_at);
+        const diff = Math.floor((today.getTime() - created.getTime()) / 86400000);
+        if (diff >= 0 && diff < 7) {
+          days[6 - diff].count += 1;
+        }
+      });
+
       setStats({
         cargos: c.count ?? 0,
         inTransit: t.count ?? 0,
         packages: p.data?.length ?? 0,
         warehouses: w.count ?? 0,
         totalsByCurrency,
+        cargoByStatus,
+        packagesByDay: days,
       });
     })();
   }, [user]);
@@ -98,34 +140,110 @@ function Index() {
           ))}
         </div>
 
+        {/* Charts row */}
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {/* Packages per day bar chart */}
+          <div className="rounded-lg border border-border bg-card p-5">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Packages — last 7 days
+            </div>
+            {stats && stats.packagesByDay.length > 0 ? (
+              <div className="mt-4 h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.packagesByDay} barSize={28}>
+                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={24} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: "var(--foreground)" }}
+                      itemStyle={{ color: "var(--foreground)" }}
+                      cursor={{ fill: "var(--secondary)", opacity: 0.5 }}
+                    />
+                    <Bar dataKey="count" name="Packages" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="mt-4 flex h-52 items-center justify-center text-sm text-muted-foreground">No data yet</div>
+            )}
+          </div>
+
+          {/* Cargo status pie chart */}
+          <div className="rounded-lg border border-border bg-card p-5">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Cargo status breakdown
+            </div>
+            {stats && stats.cargoByStatus.length > 0 ? (
+              <div className="mt-4 h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.cargoByStatus}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {stats.cargoByStatus.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                      itemStyle={{ color: "var(--foreground)" }}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => <span style={{ color: "var(--foreground)", fontSize: 12 }}>{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="mt-4 flex h-52 items-center justify-center text-sm text-muted-foreground">No cargos yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom row: totals + quick actions */}
         <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
           <div className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Total package value
             </div>
             {stats && Object.keys(stats.totalsByCurrency).length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
-                {["EUR", "USD", "ALL"]
-                  .filter((c) => stats.totalsByCurrency[c])
-                  .map((c) => (
-                    <div key={c}>
-                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {c}
+              <>
+                <div className="mt-3 border-b border-border pb-3">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Total (USD)
+                  </div>
+                  <div className="font-mono text-4xl font-semibold tracking-tight">
+                    {formatMoney(convertTotals(stats.totalsByCurrency, "USD"), "USD")}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                  {["EUR", "USD", "ALL"]
+                    .filter((c) => stats.totalsByCurrency[c])
+                    .map((c) => (
+                      <div key={c}>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {c}
+                        </div>
+                        <div className="font-mono text-2xl font-semibold tracking-tight text-muted-foreground">
+                          {formatMoney(stats.totalsByCurrency[c], c)}
+                        </div>
                       </div>
-                      <div className="font-mono text-3xl font-semibold tracking-tight">
-                        {formatMoney(stats.totalsByCurrency[c], c)}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+              </>
             ) : (
               <div className="mt-2 font-mono text-4xl font-semibold tracking-tight text-muted-foreground">
                 —
               </div>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              Sums are grouped by currency — no conversion is applied.
-            </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

@@ -57,21 +57,44 @@ export function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
 
-/** Approximate exchange rates to EUR (base). */
-const TO_EUR: Record<Currency, number> = {
-  EUR: 1,
-  USD: 0.92,
-  ALL: 0.0093,
+/** Default exchange rates (used as fallback before DB rates load). */
+const DEFAULT_RATES: Record<string, number> = {
+  USD_EUR: 0.92,
+  EUR_USD: 1.09,
+  ALL_EUR: 0.0093,
+  EUR_ALL: 107.5,
+  USD_ALL: 98.9,
+  ALL_USD: 0.0101,
 };
 
-const FROM_EUR: Record<Currency, number> = {
-  EUR: 1,
-  USD: 1.09,
-  ALL: 107.5,
-};
+/** Mutable rate store — updated by loadExchangeRates(). */
+let rateStore: Record<string, number> = { ...DEFAULT_RATES };
+
+export type ExchangeRates = Record<string, number>;
+
+/** Load rates from Supabase and cache in memory. Call once on pages that need conversion. */
+export async function loadExchangeRates(
+  supabase: { from: (table: string) => { select: (cols: string) => Promise<{ data: { from_currency: string; to_currency: string; rate: number }[] | null }> } },
+): Promise<ExchangeRates> {
+  const { data } = await supabase.from("exchange_rates").select("*");
+  if (data && data.length > 0) {
+    const map: Record<string, number> = { ...DEFAULT_RATES };
+    data.forEach((r) => {
+      map[`${r.from_currency}_${r.to_currency}`] = r.rate;
+    });
+    rateStore = map;
+  }
+  return rateStore;
+}
+
+/** Get the current rate for a pair. */
+function getRate(from: Currency, to: Currency): number {
+  return rateStore[`${from}_${to}`] ?? DEFAULT_RATES[`${from}_${to}`] ?? 1;
+}
 
 /** Country → default currency mapping. */
 const COUNTRY_CURRENCY: Record<string, Currency> = {
+  USA: "USD",
   Albania: "ALL",
   Kosovo: "EUR",
   Italy: "EUR",
@@ -89,8 +112,7 @@ export function currencyForCountry(country: string): Currency {
 /** Convert an amount from one currency to another. */
 export function convertCurrency(amount: number, from: Currency, to: Currency): number {
   if (from === to) return amount;
-  const inEur = amount * TO_EUR[from];
-  return inEur * FROM_EUR[to];
+  return amount * getRate(from, to);
 }
 
 /** Convert a totals map { EUR: 100, USD: 50 } into a single amount in the target currency. */

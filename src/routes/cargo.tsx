@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, StatusBadge, EmptyState } from "@/components/layout-primitives";
 import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-kit";
 import { MoneyInput } from "@/components/money-input";
-import { formatMoney, formatDate, shortId, Currency, currencyForCountry, convertTotals } from "@/lib/format";
+import { formatMoney, formatDate, shortId, Currency, currencyForCountry, convertTotals, loadExchangeRates } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
@@ -36,7 +36,7 @@ interface CargoWithTotals extends Cargo {
   totals: Record<string, number>;
 }
 
-const COUNTRIES = ["Albania", "Italy", "Germany", "Greece", "Turkey", "Kosovo", "France", "UK"];
+const COUNTRIES = ["USA", "Albania", "Italy", "Germany", "Greece", "Turkey", "Kosovo", "France", "UK"];
 
 function CargosPage() {
   const { user, loading } = useAuth();
@@ -55,6 +55,7 @@ function CargosPage() {
     setBusy(true);
 
     await autoTransitPendingCargos();
+    await loadExchangeRates(supabase as never);
 
     const { data: cs, error } = await supabase
       .from("cargos")
@@ -241,21 +242,16 @@ function CargoForm({
   onSaved: () => void;
 }) {
   const [code, setCode] = useState(initial?.cargo_code ?? "");
-  const [from, setFrom] = useState(initial?.departure_country ?? "Albania");
-  const [to, setTo] = useState(initial?.destination_country ?? "Italy");
+  const [from, setFrom] = useState(initial?.departure_country ?? "USA");
+  const [to, setTo] = useState(initial?.destination_country ?? "Albania");
   const [dep, setDep] = useState(initial?.departure_date ?? "");
   const [arr, setArr] = useState(initial?.arrival_date ?? "");
   const [status, setStatus] = useState(initial?.status ?? "pending");
-  const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "EUR");
+  const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "USD");
   const [busy, setBusy] = useState(false);
-
-  const today = new Date().toISOString().split("T")[0];
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!initial && dep && dep < today) {
-      return toast.error("Departure date cannot be in the past.");
-    }
     if (dep && arr && arr < dep) {
       return toast.error("Arrival date cannot be before the departure date.");
     }
@@ -301,7 +297,7 @@ function CargoForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Departure date">
-          <Input type="date" value={dep ?? ""} min={initial ? undefined : today} onChange={(e) => { setDep(e.target.value); if (arr && e.target.value && arr < e.target.value) setArr(""); }} />
+          <Input type="date" value={dep ?? ""} onChange={(e) => { setDep(e.target.value); if (arr && e.target.value && arr < e.target.value) setArr(""); }} />
         </Field>
         <Field label="Arrival date">
           <Input type="date" value={arr ?? ""} min={dep || undefined} onChange={(e) => setArr(e.target.value)} />

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/package")({
   component: PackagesPage,
 });
 
-type PaymentStatus = "paid" | "on_delivery" | "half";
+type PaymentStatus = "paid" | "on_delivery" | "partly";
 
 interface Pkg {
   id: string;
@@ -32,6 +32,8 @@ interface Pkg {
   price: number;
   currency: string;
   payment_status: string;
+  amount_paid: number | null;
+  amount_remaining: number | null;
   destination_location: string | null;
   delivery_date: string | null;
   arrival_date: string | null;
@@ -228,9 +230,21 @@ function PackagesPage() {
                       <div className="flex justify-between gap-2">
                         <span>Payment</span>
                         <span className="truncate text-foreground">
-                          {{ paid: "Paid", on_delivery: "On delivery", half: "50/50" }[p.payment_status] ?? "—"}
+                          {{ paid: "Paid", on_delivery: "On delivery", partly: "Partly" }[p.payment_status] ?? "—"}
                         </span>
                       </div>
+                      {p.payment_status === "partly" && (
+                        <>
+                          <div className="flex justify-between gap-2">
+                            <span>Paid</span>
+                            <span className="text-foreground">{formatMoney(p.amount_paid, p.currency)}</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>Remaining</span>
+                            <span className="text-foreground">{formatMoney(p.amount_remaining, p.currency)}</span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between gap-2">
                         <span>Cargo</span>
                         <span className="truncate text-foreground">{cargo?.cargo_code ?? "—"}</span>
@@ -309,19 +323,9 @@ function PackagesPage() {
 
 function PackageQR({ pkg }: { pkg: Pkg }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  const paymentLabel = { paid: "Paid", on_delivery: "On delivery", half: "50/50" }[pkg.payment_status] ?? "—";
+  const paymentLabel = { paid: "Paid", on_delivery: "On delivery", partly: "Partly" }[pkg.payment_status] ?? "—";
 
-  const qrValue = JSON.stringify({
-    code: pkg.package_code,
-    product: pkg.product_name,
-    price: pkg.price,
-    currency: pkg.currency,
-    payment: pkg.payment_status,
-    client: pkg.client_name,
-    phone: pkg.client_phone,
-    id: pkg.client_id_number,
-    destination: pkg.destination_location,
-  });
+  const trackUrl = `${window.location.origin}/track/${encodeURIComponent(pkg.package_code)}`;
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector("svg");
@@ -367,7 +371,7 @@ function PackageQR({ pkg }: { pkg: Pkg }) {
   return (
     <div className="flex flex-col items-center gap-4 py-2">
       <div ref={qrRef} className="rounded-lg border border-border bg-white p-4">
-        <QRCodeSVG value={qrValue} size={200} />
+        <QRCodeSVG value={trackUrl} size={200} />
       </div>
       <div className="text-center">
         <div className="font-medium">{pkg.product_name}</div>
@@ -405,8 +409,10 @@ function PackageForm({
   const [code, setCode] = useState(initial?.package_code ?? "");
   const [name, setName] = useState(initial?.product_name ?? "");
   const [price, setPrice] = useState(String(initial?.price ?? ""));
-  const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "EUR");
+  const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "USD");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>((initial?.payment_status as PaymentStatus) ?? "paid");
+  const [amountPaid, setAmountPaid] = useState(String(initial?.amount_paid ?? ""));
+  const [amountRemaining, setAmountRemaining] = useState(String(initial?.amount_remaining ?? ""));
   const [clientName, setClientName] = useState(initial?.client_name ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.client_phone ?? "");
   const [clientEmail, setClientEmail] = useState(initial?.client_email ?? "");
@@ -463,6 +469,8 @@ function PackageForm({
       price: Number(price) || 0,
       currency,
       payment_status: paymentStatus,
+      amount_paid: paymentStatus === "partly" ? Number(amountPaid) || 0 : null,
+      amount_remaining: paymentStatus === "partly" ? Number(amountRemaining) || 0 : null,
       client_name: clientName || null,
       client_phone: clientPhone || null,
       client_email: clientEmail || null,
@@ -502,9 +510,40 @@ function PackageForm({
         <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}>
           <option value="paid">Paid</option>
           <option value="on_delivery">Pay on delivery</option>
-          <option value="half">50/50</option>
+          <option value="partly">Partly</option>
         </Select>
       </Field>
+      {paymentStatus === "partly" && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Amount paid">
+            <Input
+              type="number"
+              step="0.01"
+              value={amountPaid}
+              onChange={(e) => {
+                const paid = e.target.value;
+                setAmountPaid(paid);
+                const total = Number(price) || 0;
+                const remaining = total - (Number(paid) || 0);
+                setAmountRemaining(remaining > 0 ? String(remaining) : "0");
+              }}
+              placeholder="0.00"
+              required
+            />
+          </Field>
+          <Field label="Remaining on delivery">
+            <Input
+              type="number"
+              step="0.01"
+              readOnly
+              value={amountRemaining}
+              onChange={(e) => setAmountRemaining(e.target.value)}
+              placeholder="0.00"
+              required
+            />
+          </Field>
+        </div>
+      )}
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground pt-2">
         Client information
       </div>

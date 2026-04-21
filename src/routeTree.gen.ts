@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WarehouseRouteImport } from './routes/warehouse'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PackageRouteImport } from './routes/package'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CargoRouteImport } from './routes/cargo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TrackCodeRouteImport } from './routes/track.$code'
 import { Route as CargoIdRouteImport } from './routes/cargo.$id'
 
 const WarehouseRoute = WarehouseRouteImport.update({
   id: '/warehouse',
   path: '/warehouse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PackageRoute = PackageRouteImport.update({
@@ -41,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrackCodeRoute = TrackCodeRouteImport.update({
+  id: '/track/$code',
+  path: '/track/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CargoIdRoute = CargoIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -52,16 +64,20 @@ export interface FileRoutesByFullPath {
   '/cargo': typeof CargoRouteWithChildren
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
+  '/settings': typeof SettingsRoute
   '/warehouse': typeof WarehouseRoute
   '/cargo/$id': typeof CargoIdRoute
+  '/track/$code': typeof TrackCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cargo': typeof CargoRouteWithChildren
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
+  '/settings': typeof SettingsRoute
   '/warehouse': typeof WarehouseRoute
   '/cargo/$id': typeof CargoIdRoute
+  '/track/$code': typeof TrackCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,8 +85,10 @@ export interface FileRoutesById {
   '/cargo': typeof CargoRouteWithChildren
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
+  '/settings': typeof SettingsRoute
   '/warehouse': typeof WarehouseRoute
   '/cargo/$id': typeof CargoIdRoute
+  '/track/$code': typeof TrackCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -79,18 +97,30 @@ export interface FileRouteTypes {
     | '/cargo'
     | '/login'
     | '/package'
+    | '/settings'
     | '/warehouse'
     | '/cargo/$id'
+    | '/track/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cargo' | '/login' | '/package' | '/warehouse' | '/cargo/$id'
+  to:
+    | '/'
+    | '/cargo'
+    | '/login'
+    | '/package'
+    | '/settings'
+    | '/warehouse'
+    | '/cargo/$id'
+    | '/track/$code'
   id:
     | '__root__'
     | '/'
     | '/cargo'
     | '/login'
     | '/package'
+    | '/settings'
     | '/warehouse'
     | '/cargo/$id'
+    | '/track/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -98,7 +128,9 @@ export interface RootRouteChildren {
   CargoRoute: typeof CargoRouteWithChildren
   LoginRoute: typeof LoginRoute
   PackageRoute: typeof PackageRoute
+  SettingsRoute: typeof SettingsRoute
   WarehouseRoute: typeof WarehouseRoute
+  TrackCodeRoute: typeof TrackCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -108,6 +140,13 @@ declare module '@tanstack/react-router' {
       path: '/warehouse'
       fullPath: '/warehouse'
       preLoaderRoute: typeof WarehouseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/package': {
@@ -138,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/track/$code': {
+      id: '/track/$code'
+      path: '/track/$code'
+      fullPath: '/track/$code'
+      preLoaderRoute: typeof TrackCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cargo/$id': {
       id: '/cargo/$id'
       path: '/$id'
@@ -163,7 +209,9 @@ const rootRouteChildren: RootRouteChildren = {
   CargoRoute: CargoRouteWithChildren,
   LoginRoute: LoginRoute,
   PackageRoute: PackageRoute,
+  SettingsRoute: SettingsRoute,
   WarehouseRoute: WarehouseRoute,
+  TrackCodeRoute: TrackCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

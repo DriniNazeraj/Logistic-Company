@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      exchange_rates: {
+        Row: {
+          id: string
+          from_currency: string
+          to_currency: string
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          from_currency: string
+          to_currency: string
+          rate: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          from_currency?: string
+          to_currency?: string
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cargos: {
         Row: {
           arrival_date: string | null
@@ -69,6 +93,8 @@ export type Database = {
           image_url: string | null
           package_code: string
           payment_status: string
+          amount_paid: number | null
+          amount_remaining: number | null
           price: number
           product_name: string
           section_id: string | null
@@ -89,6 +115,8 @@ export type Database = {
           image_url?: string | null
           package_code: string
           payment_status?: string
+          amount_paid?: number | null
+          amount_remaining?: number | null
           price?: number
           product_name: string
           section_id?: string | null
@@ -109,6 +137,8 @@ export type Database = {
           image_url?: string | null
           package_code?: string
           payment_status?: string
+          amount_paid?: number | null
+          amount_remaining?: number | null
           price?: number
           product_name?: string
           section_id?: string | null

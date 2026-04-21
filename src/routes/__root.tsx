@@ -1,7 +1,8 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
 import { Toaster } from "sonner";
-import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut } from "lucide-react";
+import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut, Settings, Sun, Moon } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { ThemeProvider, useTheme } from "@/lib/theme-context";
 
 import appCss from "../styles.css?url";
 
@@ -44,7 +45,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <HeadContent />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -64,17 +65,24 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <AppShell />
-      <Toaster theme="dark" position="top-right" richColors />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppShell />
+        <ThemedToaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
+}
+
+function ThemedToaster() {
+  const { theme } = useTheme();
+  return <Toaster theme={theme} position="top-right" richColors />;
 }
 
 function AppShell() {
   const { user, loading, signOut } = useAuth();
   const location = useLocation();
-  const isAuthRoute = location.pathname === "/login";
+  const isPublicRoute = location.pathname === "/login" || location.pathname.startsWith("/track/");
 
   if (loading) {
     return (
@@ -84,7 +92,7 @@ function AppShell() {
     );
   }
 
-  if (!user || isAuthRoute) {
+  if (!user || isPublicRoute) {
     return <Outlet />;
   }
 
@@ -93,6 +101,7 @@ function AppShell() {
     { to: "/cargo", label: "Cargos", icon: Truck },
     { to: "/package", label: "Packages", icon: Package },
     { to: "/warehouse", label: "Warehouses", icon: WarehouseIcon },
+    { to: "/settings", label: "Settings", icon: Settings },
   ] as const;
 
   return (
@@ -137,8 +146,24 @@ function AppShell() {
         </div>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col">
+        <div className="flex justify-end px-4 pt-3">
+          <ThemeToggle />
+        </div>
         <Outlet />
       </main>
     </div>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
   );
 }
