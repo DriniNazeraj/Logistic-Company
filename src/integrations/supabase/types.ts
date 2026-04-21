@@ -57,6 +57,10 @@ export type Database = {
         Row: {
           arrival_date: string | null
           cargo_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          client_email: string | null
+          client_id_number: string | null
           created_at: string
           currency: string
           delivery_date: string | null
@@ -64,6 +68,7 @@ export type Database = {
           id: string
           image_url: string | null
           package_code: string
+          payment_status: string
           price: number
           product_name: string
           section_id: string | null
@@ -72,6 +77,10 @@ export type Database = {
         Insert: {
           arrival_date?: string | null
           cargo_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          client_email?: string | null
+          client_id_number?: string | null
           created_at?: string
           currency?: string
           delivery_date?: string | null
@@ -79,6 +88,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           package_code: string
+          payment_status?: string
           price?: number
           product_name: string
           section_id?: string | null
@@ -87,6 +97,10 @@ export type Database = {
         Update: {
           arrival_date?: string | null
           cargo_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          client_email?: string | null
+          client_id_number?: string | null
           created_at?: string
           currency?: string
           delivery_date?: string | null
@@ -94,6 +108,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           package_code?: string
+          payment_status?: string
           price?: number
           product_name?: string
           section_id?: string | null

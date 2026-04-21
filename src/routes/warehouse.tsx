@@ -8,9 +8,11 @@ import { toast } from "sonner";
 import {
   Plus,
   Trash2,
+  X,
   Package as PackageIcon,
   Settings,
   Warehouse as WarehouseIcon,
+  GripVertical,
 } from "lucide-react";
 
 export const Route = createFileRoute("/warehouse")({
@@ -118,6 +120,22 @@ function WarehousePage() {
   }, [user]);
 
   const sel = sections.find((s) => s.id === selected) ?? null;
+  const unassigned = packages.filter((p) => !p.section_id);
+
+  /* ── Package assignment ── */
+  const assignPackage = async (pkgId: string, sectionId: string | null) => {
+    setPackages((prev) =>
+      prev.map((p) => (p.id === pkgId ? { ...p, section_id: sectionId } : p)),
+    );
+    const { error } = await supabase
+      .from("packages")
+      .update({ section_id: sectionId })
+      .eq("id", pkgId);
+    if (error) {
+      toast.error(error.message);
+      load();
+    }
+  };
 
   /* ── Section CRUD ── */
   const addSection = async () => {
@@ -268,6 +286,15 @@ function WarehousePage() {
                           offY: e.clientY - rect.top - s.y,
                         });
                       }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const pkgId = e.dataTransfer.getData("application/x-package-id");
+                        if (pkgId) assignPackage(pkgId, s.id);
+                      }}
                       className={
                         "absolute cursor-move select-none rounded-md border-2 transition-shadow " +
                         (active ? "shadow-lg ring-2 ring-ring/60" : "")
@@ -411,7 +438,7 @@ function WarehousePage() {
                 <ul className="mt-2 space-y-1 text-sm">
                   {packages.filter((p) => p.section_id === sel.id).length === 0 ? (
                     <li className="text-xs text-muted-foreground">
-                      No packages assigned. Assign from the Packages page.
+                      Drop packages here from the list below.
                     </li>
                   ) : (
                     packages
@@ -419,12 +446,24 @@ function WarehousePage() {
                       .map((p) => (
                         <li
                           key={p.id}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("application/x-package-id", p.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
                           className="flex items-center justify-between rounded-md border border-border bg-background px-2 py-1.5"
                         >
-                          <span className="truncate">{p.product_name}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground">
-                            {p.package_code}
-                          </span>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50 cursor-grab" />
+                            <span className="truncate">{p.product_name}</span>
+                          </div>
+                          <button
+                            onClick={() => assignPackage(p.id, null)}
+                            className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                            title="Remove from section"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </li>
                       ))
                   )}
@@ -433,6 +472,48 @@ function WarehousePage() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   Select a section to see its packages.
                 </p>
+              )}
+            </div>
+
+            <div
+              className="rounded-lg border border-dashed border-border bg-card p-4"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const pkgId = e.dataTransfer.getData("application/x-package-id");
+                if (pkgId) assignPackage(pkgId, null);
+              }}
+            >
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Unassigned packages ({unassigned.length})
+              </div>
+              {unassigned.length === 0 ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  All packages are assigned. Drop here to unassign.
+                </p>
+              ) : (
+                <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-sm">
+                  {unassigned.map((p) => (
+                    <li
+                      key={p.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("application/x-package-id", p.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      className="flex cursor-grab items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 active:cursor-grabbing"
+                    >
+                      <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                      <span className="truncate">{p.product_name}</span>
+                      <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                        {p.package_code}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>

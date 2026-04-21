@@ -52,6 +52,14 @@ CREATE TABLE public.packages (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE packages ADD COLUMN payment_status text NOT NULL DEFAULT 'paid';
+
+ALTER TABLE packages
+    ADD COLUMN client_name text,
+    ADD COLUMN client_phone text,
+    ADD COLUMN client_email text,
+    ADD COLUMN client_id_number text;
+
 CREATE INDEX idx_packages_cargo ON public.packages(cargo_id);
 CREATE INDEX idx_packages_section ON public.packages(section_id);
 CREATE INDEX idx_sections_warehouse ON public.sections(warehouse_id);

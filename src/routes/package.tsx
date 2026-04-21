@@ -7,7 +7,8 @@ import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-
 import { MoneyInput } from "@/components/money-input";
 import { formatMoney, formatDate, shortId, Currency } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 export const Route = createFileRoute("/package")({
   validateSearch: (search: Record<string, unknown>): { cargo?: string } => ({
@@ -22,15 +23,22 @@ export const Route = createFileRoute("/package")({
   component: PackagesPage,
 });
 
+type PaymentStatus = "paid" | "on_delivery" | "half";
+
 interface Pkg {
   id: string;
   package_code: string;
   product_name: string;
   price: number;
   currency: string;
+  payment_status: string;
   destination_location: string | null;
   delivery_date: string | null;
   arrival_date: string | null;
+  client_name: string | null;
+  client_phone: string | null;
+  client_email: string | null;
+  client_id_number: string | null;
   image_url: string | null;
   cargo_id: string | null;
   section_id: string | null;
@@ -66,6 +74,7 @@ function PackagesPage() {
   const { cargo: cargoParam } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [cargoFilter, setCargoFilter] = useState(cargoParam ?? "all");
+  const [qrPkg, setQrPkg] = useState<Pkg | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -209,6 +218,20 @@ function PackagesPage() {
                     </div>
                     <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
                       <div className="flex justify-between gap-2">
+                        <span>Client</span>
+                        <span className="truncate text-foreground">{p.client_name ?? "—"}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span>Phone</span>
+                        <span className="truncate text-foreground">{p.client_phone ?? "—"}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span>Payment</span>
+                        <span className="truncate text-foreground">
+                          {{ paid: "Paid", on_delivery: "On delivery", half: "50/50" }[p.payment_status] ?? "—"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
                         <span>Cargo</span>
                         <span className="truncate text-foreground">{cargo?.cargo_code ?? "—"}</span>
                       </div>
@@ -232,6 +255,9 @@ function PackagesPage() {
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-2">
+                      <Button variant="ghost" onClick={() => setQrPkg(p)}>
+                        <QrCode className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         onClick={() => {
@@ -269,7 +295,96 @@ function PackagesPage() {
           }}
         />
       </Modal>
+
+      <Modal
+        open={!!qrPkg}
+        onClose={() => setQrPkg(null)}
+        title="Package QR Code"
+      >
+        {qrPkg && <PackageQR pkg={qrPkg} />}
+      </Modal>
     </>
+  );
+}
+
+function PackageQR({ pkg }: { pkg: Pkg }) {
+  const qrRef = useRef<HTMLDivElement>(null);
+  const paymentLabel = { paid: "Paid", on_delivery: "On delivery", half: "50/50" }[pkg.payment_status] ?? "—";
+
+  const qrValue = JSON.stringify({
+    code: pkg.package_code,
+    product: pkg.product_name,
+    price: pkg.price,
+    currency: pkg.currency,
+    payment: pkg.payment_status,
+    client: pkg.client_name,
+    phone: pkg.client_phone,
+    id: pkg.client_id_number,
+    destination: pkg.destination_location,
+  });
+
+  const downloadQR = () => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const a = document.createElement("a");
+      a.download = `${pkg.package_code || "package"}-qr.png`;
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
+
+  const printQR = () => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>QR - ${pkg.package_code}</title>
+      <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif;margin:0}
+      h2{margin:0 0 4px}p{margin:0;color:#666;font-size:14px}.code{font-family:monospace;font-size:13px;color:#888;margin-top:2px}</style></head>
+      <body>
+        ${svgData}
+        <h2 style="margin-top:16px">${pkg.product_name}</h2>
+        <p class="code">${pkg.package_code}</p>
+        <p style="margin-top:8px">${formatMoney(pkg.price, pkg.currency)} &middot; ${paymentLabel}</p>
+        ${pkg.destination_location ? `<p>${pkg.destination_location}</p>` : ""}
+      </body></html>
+    `);
+    win.document.close();
+    win.print();
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-2">
+      <div ref={qrRef} className="rounded-lg border border-border bg-white p-4">
+        <QRCodeSVG value={qrValue} size={200} />
+      </div>
+      <div className="text-center">
+        <div className="font-medium">{pkg.product_name}</div>
+        <div className="font-mono text-xs text-muted-foreground">{pkg.package_code}</div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          {formatMoney(pkg.price, pkg.currency)} &middot; {paymentLabel}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="secondary" onClick={downloadQR}>
+          <Download className="h-3.5 w-3.5" /> Download PNG
+        </Button>
+        <Button onClick={printQR}>
+          Print
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -291,6 +406,11 @@ function PackageForm({
   const [name, setName] = useState(initial?.product_name ?? "");
   const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "EUR");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>((initial?.payment_status as PaymentStatus) ?? "paid");
+  const [clientName, setClientName] = useState(initial?.client_name ?? "");
+  const [clientPhone, setClientPhone] = useState(initial?.client_phone ?? "");
+  const [clientEmail, setClientEmail] = useState(initial?.client_email ?? "");
+  const [clientIdNumber, setClientIdNumber] = useState(initial?.client_id_number ?? "");
   const [dest, setDest] = useState(initial?.destination_location ?? "");
   const [delivery, setDelivery] = useState(initial?.delivery_date ?? "");
   const [arrival, setArrival] = useState(initial?.arrival_date ?? "");
@@ -342,6 +462,11 @@ function PackageForm({
       product_name: name,
       price: Number(price) || 0,
       currency,
+      payment_status: paymentStatus,
+      client_name: clientName || null,
+      client_phone: clientPhone || null,
+      client_email: clientEmail || null,
+      client_id_number: clientIdNumber || null,
       destination_location: dest || null,
       delivery_date: delivery || null,
       arrival_date: arrival || null,
@@ -372,6 +497,35 @@ function PackageForm({
             onCurrencyChange={setCurrency}
           />
         </Field>
+      </div>
+      <Field label="Payment status">
+        <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}>
+          <option value="paid">Paid</option>
+          <option value="on_delivery">Pay on delivery</option>
+          <option value="half">50/50</option>
+        </Select>
+      </Field>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground pt-2">
+        Client information
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Full name">
+          <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="John Doe" required />
+        </Field>
+        <Field label="ID number">
+          <Input value={clientIdNumber} onChange={(e) => setClientIdNumber(e.target.value)} placeholder="A12345678" required />
+        </Field>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Phone number">
+          <Input type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="+355 69 123 4567" required />
+        </Field>
+        <Field label="Email" hint="Optional">
+          <Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="client@example.com" />
+        </Field>
+      </div>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground pt-2">
+        Product details
       </div>
       <Field label="Product name">
         <Input value={name} onChange={(e) => setName(e.target.value)} required />
