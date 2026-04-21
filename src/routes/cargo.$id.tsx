@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, StatusBadge } from "@/components/layout-primitives";
 import { formatMoney, formatDate, shortId } from "@/lib/format";
@@ -61,23 +61,16 @@ function CargoDetail() {
     if (!user) return;
     (async () => {
       setBusy(true);
-      const [{ data: c }, { data: ps }] = await Promise.all([
-        supabase.from("cargos").select("*").eq("id", id).maybeSingle(),
-        supabase
-          .from("packages")
-          .select("*")
-          .eq("cargo_id", id)
-          .order("created_at", { ascending: false }),
+      const [c, ps] = await Promise.all([
+        api.cargos.get(id),
+        api.packages.listByCargo(id),
       ]);
       setCargo(c);
       setPackages(ps ?? []);
-      const secIds = Array.from(new Set((ps ?? []).map((p) => p.section_id).filter(Boolean))) as string[];
+      const secIds = Array.from(new Set((ps ?? []).map((p: any) => p.section_id).filter(Boolean))) as string[];
       if (secIds.length) {
-        const { data: ss } = await supabase
-          .from("sections")
-          .select("id, name, warehouse_id, warehouses(name)")
-          .in("id", secIds);
-        setSections((ss as SectionInfo[]) ?? []);
+        const ss = await api.sections.withWarehouse(secIds);
+        setSections(ss as SectionInfo[]);
       } else {
         setSections([]);
       }

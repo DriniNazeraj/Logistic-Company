@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, FormEvent, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, EmptyState } from "@/components/layout-primitives";
 import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-kit";
@@ -82,11 +82,11 @@ function PackagesPage() {
 
   const load = async () => {
     setBusy(true);
-    const [{ data: ps }, { data: cs }, { data: ws }, { data: ss }] = await Promise.all([
-      supabase.from("packages").select("*").order("created_at", { ascending: false }),
-      supabase.from("cargos").select("id, cargo_code, status").order("created_at", { ascending: false }),
-      supabase.from("warehouses").select("id, name").order("name"),
-      supabase.from("sections").select("id, name, warehouse_id").order("name"),
+    const [ps, cs, ws, ss] = await Promise.all([
+      api.packages.list(),
+      api.cargos.list(),
+      api.warehouses.list(),
+      api.sections.list(),
     ]);
     setPackages(ps ?? []);
     setCargos(cs ?? []);
@@ -120,10 +120,13 @@ function PackagesPage() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this package?")) return;
-    const { error } = await supabase.from("packages").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Package deleted");
-    load();
+    try {
+      await api.packages.delete(id);
+      toast.success("Package deleted");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   if (!user) return null;
@@ -233,7 +236,7 @@ function PackagesPage() {
                       </div>
                       <div className="flex justify-between gap-2">
                         <span>Cargo</span>
-                        <span className="truncate text-foreground">{cargo?.cargo_code ?? "—"}</span>
+                        <span className="truncate text-foreground">{cargo?.cargo_code ?? "���"}</span>
                       </div>
                       <div className="flex justify-between gap-2">
                         <span>Warehouse</span>
@@ -309,7 +312,7 @@ function PackagesPage() {
 
 function PackageQR({ pkg }: { pkg: Pkg }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  const paymentLabel = { paid: "Paid", on_delivery: "On delivery", half: "50/50" }[pkg.payment_status] ?? "—";
+  const paymentLabel = { paid: "Paid", on_delivery: "On delivery", half: "50/50" }[pkg.payment_status] ?? "��";
 
   const qrValue = JSON.stringify({
     code: pkg.package_code,
@@ -429,7 +432,6 @@ function PackageForm({
 
   const onWarehouseChange = (wid: string) => {
     setWarehouseId(wid);
-    // Clear section if it no longer belongs to the selected warehouse
     if (!sections.find((s) => s.id === sectionId && s.warehouse_id === wid)) {
       setSectionId("");
     }
@@ -437,21 +439,14 @@ function PackageForm({
 
   const upload = async (file: File) => {
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from("package-images").upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-    if (error) {
-      toast.error(error.message);
-      setUploading(false);
-      return;
+    try {
+      const url = await api.upload(file);
+      setImageUrl(url);
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    const { data } = supabase.storage.from("package-images").getPublicUrl(path);
-    setImageUrl(data.publicUrl);
     setUploading(false);
-    toast.success("Image uploaded");
   };
 
   const submit = async (e: FormEvent) => {
@@ -474,13 +469,18 @@ function PackageForm({
       section_id: sectionId || null,
       image_url: imageUrl || null,
     };
-    const { error } = initial
-      ? await supabase.from("packages").update(payload).eq("id", initial.id)
-      : await supabase.from("packages").insert(payload);
+    try {
+      if (initial) {
+        await api.packages.update(initial.id, payload);
+      } else {
+        await api.packages.create(payload);
+      }
+      toast.success(initial ? "Package updated" : "Package created");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(initial ? "Package updated" : "Package created");
-    onSaved();
   };
 
   return (

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
 import { formatMoney } from "@/lib/format";
@@ -38,25 +38,20 @@ function Index() {
     if (!user) return;
     (async () => {
       await autoTransitPendingCargos();
-      const [c, t, w, p] = await Promise.all([
-        supabase.from("cargos").select("id", { count: "exact", head: true }),
-        supabase
-          .from("cargos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "in_transit"),
-        supabase.from("warehouses").select("id", { count: "exact", head: true }),
-        supabase.from("packages").select("id, price, currency"),
+      const [counts, pkgs] = await Promise.all([
+        api.cargos.stats(),
+        api.packages.listSummary(),
       ]);
       const totalsByCurrency: Record<string, number> = {};
-      p.data?.forEach((x) => {
-        const cur = (x as { currency?: string }).currency ?? "EUR";
+      pkgs.forEach((x: any) => {
+        const cur = x.currency ?? "EUR";
         totalsByCurrency[cur] = (totalsByCurrency[cur] ?? 0) + Number(x.price ?? 0);
       });
       setStats({
-        cargos: c.count ?? 0,
-        inTransit: t.count ?? 0,
-        packages: p.data?.length ?? 0,
-        warehouses: w.count ?? 0,
+        cargos: counts.total,
+        inTransit: counts.inTransit,
+        packages: pkgs.length,
+        warehouses: counts.warehouses,
         totalsByCurrency,
       });
     })();

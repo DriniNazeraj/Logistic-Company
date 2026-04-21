@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, FormEvent } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, StatusBadge, EmptyState } from "@/components/layout-primitives";
 import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-kit";
@@ -56,32 +56,30 @@ function CargosPage() {
 
     await autoTransitPendingCargos();
 
-    const { data: cs, error } = await supabase
-      .from("cargos")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast.error(error.message);
-      setBusy(false);
-      return;
+    try {
+      const [cs, ps] = await Promise.all([
+        api.cargos.list(),
+        api.packages.listSummary(),
+      ]);
+      const agg = new Map<string, { count: number; totals: Record<string, number> }>();
+      ps.forEach((p: any) => {
+        if (!p.cargo_id) return;
+        const cur = agg.get(p.cargo_id) ?? { count: 0, totals: {} };
+        cur.count += 1;
+        const code = p.currency ?? "EUR";
+        cur.totals[code] = (cur.totals[code] ?? 0) + Number(p.price ?? 0);
+        agg.set(p.cargo_id, cur);
+      });
+      setCargos(
+        cs.map((c: any) => ({
+          ...c,
+          package_count: agg.get(c.id)?.count ?? 0,
+          totals: agg.get(c.id)?.totals ?? {},
+        })),
+      );
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    const { data: ps } = await supabase.from("packages").select("cargo_id, price, currency");
-    const agg = new Map<string, { count: number; totals: Record<string, number> }>();
-    ps?.forEach((p) => {
-      if (!p.cargo_id) return;
-      const cur = agg.get(p.cargo_id) ?? { count: 0, totals: {} };
-      cur.count += 1;
-      const code = p.currency ?? "EUR";
-      cur.totals[code] = (cur.totals[code] ?? 0) + Number(p.price ?? 0);
-      agg.set(p.cargo_id, cur);
-    });
-    setCargos(
-      (cs ?? []).map((c) => ({
-        ...c,
-        package_count: agg.get(c.id)?.count ?? 0,
-        totals: agg.get(c.id)?.totals ?? {},
-      })),
-    );
     setBusy(false);
   };
 
@@ -111,10 +109,13 @@ function CargosPage() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this cargo? Packages will be unlinked.")) return;
-    const { error } = await supabase.from("cargos").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Cargo deleted");
-    load();
+    try {
+      await api.cargos.delete(id);
+      toast.success("Cargo deleted");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   if (!user) return null;
@@ -269,13 +270,18 @@ function CargoForm({
       status,
       currency,
     };
-    const { error } = initial
-      ? await supabase.from("cargos").update(payload).eq("id", initial.id)
-      : await supabase.from("cargos").insert(payload);
+    try {
+      if (initial) {
+        await api.cargos.update(initial.id, payload);
+      } else {
+        await api.cargos.create(payload);
+      }
+      toast.success(initial ? "Cargo updated" : "Cargo created");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(initial ? "Cargo updated" : "Cargo created");
-    onSaved();
   };
 
   return (
