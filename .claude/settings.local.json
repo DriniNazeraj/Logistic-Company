@@ -3,7 +3,14 @@
     "allow": [
       "Bash(xargs grep:*)",
       "Bash(npx @tanstack/router-plugin generate-routes)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
