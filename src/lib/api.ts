@@ -68,6 +68,7 @@ export const api = {
     create: (data: any) => request<any>("/packages", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/packages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/packages/${id}`, { method: "DELETE" }),
+    track: (code: string) => request<{ package: any; cargo: any | null }>(`/packages/track/${encodeURIComponent(code)}`),
   },
 
   warehouses: {
@@ -85,6 +86,12 @@ export const api = {
     create: (data: any) => request<any>("/sections", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/sections/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/sections/${id}`, { method: "DELETE" }),
+  },
+
+  settings: {
+    getExchangeRates: () => request<any[]>("/settings/exchange-rates"),
+    saveExchangeRates: (rates: { from_currency: string; to_currency: string; rate: number }[]) =>
+      request<{ ok: boolean }>("/settings/exchange-rates", { method: "PUT", body: JSON.stringify(rates) }),
   },
 
   upload: async (file: File): Promise<string> => {

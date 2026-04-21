@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
 import { Field, Input, Button } from "@/components/ui-kit";
@@ -46,32 +46,29 @@ function SettingsPage() {
 
   const load = async () => {
     setBusy(true);
-    const { data, error } = await supabase
-      .from("exchange_rates")
-      .select("*");
-    if (error) {
-      toast.error(error.message);
-      setBusy(false);
-      return;
+    try {
+      const data: ExchangeRate[] = await api.settings.getExchangeRates();
+      const map: Record<string, string> = {};
+      data.forEach((r) => {
+        map[`${r.from_currency}_${r.to_currency}`] = String(r.rate);
+      });
+      // Fill defaults for any missing pairs
+      const defaults: Record<string, number> = {
+        USD_EUR: 0.92,
+        EUR_USD: 1.09,
+        ALL_EUR: 0.0093,
+        EUR_ALL: 107.5,
+        USD_ALL: 98.9,
+        ALL_USD: 0.0101,
+      };
+      for (const pair of PAIRS) {
+        const key = `${pair.from}_${pair.to}`;
+        if (!map[key]) map[key] = String(defaults[key] ?? 1);
+      }
+      setRates(map);
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    const map: Record<string, string> = {};
-    (data as ExchangeRate[]).forEach((r) => {
-      map[`${r.from_currency}_${r.to_currency}`] = String(r.rate);
-    });
-    // Fill defaults for any missing pairs
-    const defaults: Record<string, number> = {
-      USD_EUR: 0.92,
-      EUR_USD: 1.09,
-      ALL_EUR: 0.0093,
-      EUR_ALL: 107.5,
-      USD_ALL: 98.9,
-      ALL_USD: 0.0101,
-    };
-    for (const pair of PAIRS) {
-      const key = `${pair.from}_${pair.to}`;
-      if (!map[key]) map[key] = String(defaults[key] ?? 1);
-    }
-    setRates(map);
     setBusy(false);
   };
 
@@ -81,23 +78,18 @@ function SettingsPage() {
 
   const save = async () => {
     setSaving(true);
-    for (const pair of PAIRS) {
-      const key = `${pair.from}_${pair.to}`;
-      const rate = Number(rates[key]) || 0;
-      const { error } = await supabase
-        .from("exchange_rates")
-        .upsert(
-          { from_currency: pair.from, to_currency: pair.to, rate },
-          { onConflict: "from_currency,to_currency" },
-        );
-      if (error) {
-        toast.error(`Failed to save ${key}: ${error.message}`);
-        setSaving(false);
-        return;
-      }
+    try {
+      const payload = PAIRS.map((pair) => ({
+        from_currency: pair.from,
+        to_currency: pair.to,
+        rate: Number(rates[`${pair.from}_${pair.to}`]) || 0,
+      }));
+      await api.settings.saveExchangeRates(payload);
+      toast.success("Exchange rates saved");
+    } catch (err: any) {
+      toast.error(err.message);
     }
     setSaving(false);
-    toast.success("Exchange rates saved");
   };
 
   if (!user) return null;

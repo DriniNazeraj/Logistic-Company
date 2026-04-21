@@ -72,17 +72,21 @@ let rateStore: Record<string, number> = { ...DEFAULT_RATES };
 
 export type ExchangeRates = Record<string, number>;
 
-/** Load rates from Supabase and cache in memory. Call once on pages that need conversion. */
-export async function loadExchangeRates(
-  supabase: { from: (table: string) => { select: (cols: string) => Promise<{ data: { from_currency: string; to_currency: string; rate: number }[] | null }> } },
-): Promise<ExchangeRates> {
-  const { data } = await supabase.from("exchange_rates").select("*");
-  if (data && data.length > 0) {
-    const map: Record<string, number> = { ...DEFAULT_RATES };
-    data.forEach((r) => {
-      map[`${r.from_currency}_${r.to_currency}`] = r.rate;
-    });
-    rateStore = map;
+/** Load rates from the API and cache in memory. Call once on pages that need conversion. */
+export async function loadExchangeRates(): Promise<ExchangeRates> {
+  try {
+    const { api } = await import("@/lib/api");
+    const data: { from_currency: string; to_currency: string; rate: number }[] =
+      await api.settings.getExchangeRates();
+    if (data && data.length > 0) {
+      const map: Record<string, number> = { ...DEFAULT_RATES };
+      data.forEach((r) => {
+        map[`${r.from_currency}_${r.to_currency}`] = r.rate;
+      });
+      rateStore = map;
+    }
+  } catch {
+    // Use defaults if API is unavailable
   }
   return rateStore;
 }

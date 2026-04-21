@@ -22,7 +22,8 @@ router.post("/", upload.single("file"), (req, res) => {
     res.status(400).json({ message: "No file uploaded" });
     return;
   }
-  const url = `/uploads/${req.file.filename}`;
+  const port = process.env.PORT || "3001";
+  const url = `http://localhost:${port}/uploads/${req.file.filename}`;
   res.json({ url });
 });
 

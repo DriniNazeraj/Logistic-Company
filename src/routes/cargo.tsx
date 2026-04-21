@@ -55,7 +55,7 @@ function CargosPage() {
     setBusy(true);
 
     await autoTransitPendingCargos();
-    await loadExchangeRates(supabase as never);
+    await loadExchangeRates();
 
     try {
       const [cs, ps] = await Promise.all([

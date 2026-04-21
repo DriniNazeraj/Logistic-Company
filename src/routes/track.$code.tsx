@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { formatMoney, formatDate } from "@/lib/format";
 import { Package as PackageIcon, MapPin, Calendar, CreditCard, User, Phone, Mail, IdCard } from "lucide-react";
 
@@ -51,29 +51,13 @@ function TrackPage() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("packages")
-        .select("*")
-        .eq("package_code", code)
-        .maybeSingle();
-
-      if (error || !data) {
+      try {
+        const data = await api.packages.track(code);
+        setPkg(data.package as TrackPkg);
+        if (data.cargo) setCargo(data.cargo as CargoInfo);
+      } catch {
         setNotFound(true);
-        setLoading(false);
-        return;
       }
-
-      setPkg(data as TrackPkg);
-
-      if (data.cargo_id) {
-        const { data: c } = await supabase
-          .from("cargos")
-          .select("cargo_code, departure_country, destination_country, status")
-          .eq("id", data.cargo_id)
-          .maybeSingle();
-        if (c) setCargo(c as CargoInfo);
-      }
-
       setLoading(false);
     };
     load();

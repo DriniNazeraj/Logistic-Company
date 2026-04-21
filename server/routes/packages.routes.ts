@@ -3,6 +3,33 @@ import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
 
 const router = Router();
+
+// Public tracking endpoint (no auth)
+router.get("/track/:code", async (req, res) => {
+  try {
+    const { rows: pkgs } = await query(
+      "SELECT * FROM packages WHERE package_code = $1 LIMIT 1",
+      [req.params.code],
+    );
+    if (pkgs.length === 0) {
+      res.status(404).json({ message: "Package not found" });
+      return;
+    }
+    const pkg = pkgs[0];
+    let cargo = null;
+    if (pkg.cargo_id) {
+      const { rows } = await query(
+        "SELECT cargo_code, departure_country, destination_country, status FROM cargos WHERE id = $1",
+        [pkg.cargo_id],
+      );
+      cargo = rows[0] ?? null;
+    }
+    res.json({ package: pkg, cargo });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.use(authMiddleware);
 
 router.get("/", async (req, res) => {

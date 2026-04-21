@@ -49,6 +49,15 @@ CREATE TABLE IF NOT EXISTS sections (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Exchange rates
+CREATE TABLE IF NOT EXISTS exchange_rates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  from_currency TEXT NOT NULL,
+  to_currency TEXT NOT NULL,
+  rate NUMERIC NOT NULL DEFAULT 1,
+  UNIQUE(from_currency, to_currency)
+);
+
 -- Packages
 CREATE TABLE IF NOT EXISTS packages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
