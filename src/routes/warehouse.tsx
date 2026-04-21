@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, MouseEvent as RMouseEvent, FormEvent } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
 import { Modal, Field, Input, Button, FormShell } from "@/components/ui-kit";
@@ -78,40 +78,27 @@ function WarehousePage() {
     setBusy(true);
 
     // Try to get the first warehouse
-    let { data: w } = await supabase
-      .from("warehouses")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    let w = await api.warehouses.getFirst();
 
     // Auto-create one if none exists
     if (!w) {
-      const { data: created, error } = await supabase
-        .from("warehouses")
-        .insert({ name: "Main Warehouse", location: null, canvas_width: 1000, canvas_height: 600 })
-        .select()
-        .single();
-      if (error) {
-        toast.error(error.message);
+      try {
+        w = await api.warehouses.create({ name: "Main Warehouse", location: null, canvas_width: 1000, canvas_height: 600 });
+      } catch (err: any) {
+        toast.error(err.message);
         setBusy(false);
         return;
       }
-      w = created;
     }
 
-    const [{ data: ss }, { data: ps }] = await Promise.all([
-      supabase
-        .from("sections")
-        .select("*")
-        .eq("warehouse_id", w!.id)
-        .order("created_at", { ascending: true }),
-      supabase.from("packages").select("id, package_code, product_name, section_id"),
+    const [ss, ps] = await Promise.all([
+      api.sections.list(w.id),
+      api.packages.list(),
     ]);
 
     setWarehouse(w as Warehouse);
     setSections(ss ?? []);
-    setPackages(ps ?? []);
+    setPackages((ps ?? []).map((p: any) => ({ id: p.id, package_code: p.package_code, product_name: p.product_name, section_id: p.section_id })));
     setBusy(false);
   };
 
@@ -122,22 +109,20 @@ function WarehousePage() {
   const sel = sections.find((s) => s.id === selected) ?? null;
   const unassigned = packages.filter((p) => !p.section_id);
 
-  /* ── Package assignment ── */
+  /* -- Package assignment -- */
   const assignPackage = async (pkgId: string, sectionId: string | null) => {
     setPackages((prev) =>
       prev.map((p) => (p.id === pkgId ? { ...p, section_id: sectionId } : p)),
     );
-    const { error } = await supabase
-      .from("packages")
-      .update({ section_id: sectionId })
-      .eq("id", pkgId);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api.packages.update(pkgId, { section_id: sectionId });
+    } catch (err: any) {
+      toast.error(err.message);
       load();
     }
   };
 
-  /* ── Section CRUD ── */
+  /* -- Section CRUD -- */
   const addSection = async () => {
     if (!warehouse) return;
     const color = COLORS[sections.length % COLORS.length];
@@ -150,10 +135,13 @@ function WarehousePage() {
       width: 160,
       height: 100,
     };
-    const { data, error } = await supabase.from("sections").insert(payload).select().single();
-    if (error) return toast.error(error.message);
-    setSections((prev) => [...prev, data as Section]);
-    setSelected((data as Section).id);
+    try {
+      const data = await api.sections.create(payload);
+      setSections((prev) => [...prev, data as Section]);
+      setSelected((data as Section).id);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const updateSection = (s: Section, patch: Partial<Section>) => {
@@ -161,30 +149,33 @@ function WarehousePage() {
   };
 
   const persistSection = async (s: Section) => {
-    const { error } = await supabase
-      .from("sections")
-      .update({
+    try {
+      await api.sections.update(s.id, {
         name: s.name,
         color: s.color,
         x: Math.round(s.x),
         y: Math.round(s.y),
         width: Math.round(s.width),
         height: Math.round(s.height),
-      })
-      .eq("id", s.id);
-    if (error) toast.error(error.message);
+      });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const deleteSection = async (sectionId: string) => {
     if (!confirm("Delete this section?")) return;
-    const { error } = await supabase.from("sections").delete().eq("id", sectionId);
-    if (error) return toast.error(error.message);
-    setSections((prev) => prev.filter((s) => s.id !== sectionId));
-    setSelected(null);
-    toast.success("Section deleted");
+    try {
+      await api.sections.delete(sectionId);
+      setSections((prev) => prev.filter((s) => s.id !== sectionId));
+      setSelected(null);
+      toast.success("Section deleted");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  /* ── Drag / resize ── */
+  /* -- Drag / resize -- */
   const onCanvasMouseMove = (e: RMouseEvent) => {
     if (drag.kind === "none" || !canvasRef.current || !warehouse) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -213,7 +204,7 @@ function WarehousePage() {
     if (s) await persistSection(s);
   };
 
-  /* ── Render ── */
+  /* -- Render -- */
   if (!user) return null;
 
   if (busy || !warehouse) {
@@ -242,7 +233,7 @@ function WarehousePage() {
       />
       <PageBody>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-          {/* ── Canvas ── */}
+          {/* -- Canvas -- */}
           <div className="min-w-0 rounded-lg border border-border bg-card p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="font-mono text-xs text-muted-foreground">
@@ -359,7 +350,7 @@ function WarehousePage() {
             </div>
           </div>
 
-          {/* ── Side panel ── */}
+          {/* -- Side panel -- */}
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -520,7 +511,7 @@ function WarehousePage() {
         </div>
       </PageBody>
 
-      {/* ── Warehouse settings modal ── */}
+      {/* -- Warehouse settings modal -- */}
       <Modal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -555,14 +546,14 @@ function WarehouseSettingsForm({
     e.preventDefault();
     setBusy(true);
     const payload = { name, location: location || null, canvas_width: w, canvas_height: h };
-    const { error } = await supabase
-      .from("warehouses")
-      .update(payload)
-      .eq("id", warehouse.id);
+    try {
+      await api.warehouses.update(warehouse.id, payload);
+      toast.success("Warehouse updated");
+      onSaved({ ...warehouse, ...payload });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Warehouse updated");
-    onSaved({ ...warehouse, ...payload });
   };
 
   return (

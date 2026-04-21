@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
 import { formatMoney, convertTotals, loadExchangeRates } from "@/lib/format";
@@ -46,28 +46,22 @@ function Index() {
     if (!user) return;
     (async () => {
       await autoTransitPendingCargos();
-      await loadExchangeRates(supabase as never);
-      const [c, t, w, p, allCargos, allPkgs] = await Promise.all([
-        supabase.from("cargos").select("id", { count: "exact", head: true }),
-        supabase
-          .from("cargos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "in_transit"),
-        supabase.from("warehouses").select("id", { count: "exact", head: true }),
-        supabase.from("packages").select("id, price, currency"),
-        supabase.from("cargos").select("status"),
-        supabase.from("packages").select("created_at"),
+      const [counts, pkgs, allCargos, allPkgs] = await Promise.all([
+        api.cargos.stats(),
+        api.packages.listSummary(),
+        api.cargos.list(),
+        api.packages.list(),
       ]);
       const totalsByCurrency: Record<string, number> = {};
-      p.data?.forEach((x) => {
-        const cur = (x as { currency?: string }).currency ?? "EUR";
+      pkgs.forEach((x: any) => {
+        const cur = x.currency ?? "EUR";
         totalsByCurrency[cur] = (totalsByCurrency[cur] ?? 0) + Number(x.price ?? 0);
       });
 
       // Cargo by status
       const statusCounts: Record<string, number> = { pending: 0, in_transit: 0, delivered: 0 };
-      allCargos.data?.forEach((r) => {
-        const s = (r as { status: string }).status;
+      allCargos.forEach((r: any) => {
+        const s = r.status;
         statusCounts[s] = (statusCounts[s] ?? 0) + 1;
       });
       const cargoByStatus = [
@@ -84,8 +78,8 @@ function Index() {
         d.setDate(d.getDate() - i);
         days.push({ day: d.toLocaleDateString("en-US", { weekday: "short" }), count: 0 });
       }
-      allPkgs.data?.forEach((r) => {
-        const created = new Date((r as { created_at: string }).created_at);
+      allPkgs.forEach((r: any) => {
+        const created = new Date(r.created_at);
         const diff = Math.floor((today.getTime() - created.getTime()) / 86400000);
         if (diff >= 0 && diff < 7) {
           days[6 - diff].count += 1;
@@ -93,10 +87,10 @@ function Index() {
       });
 
       setStats({
-        cargos: c.count ?? 0,
-        inTransit: t.count ?? 0,
-        packages: p.data?.length ?? 0,
-        warehouses: w.count ?? 0,
+        cargos: counts.total,
+        inTransit: counts.inTransit,
+        packages: pkgs.length,
+        warehouses: counts.warehouses,
         totalsByCurrency,
         cargoByStatus,
         packagesByDay: days,
