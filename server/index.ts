@@ -1,7 +1,8 @@
 import "dotenv/config";
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import path from "path";
+import { isDatabaseAvailable } from "./db.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import cargosRoutes from "./routes/cargos.routes.js";
@@ -28,8 +29,18 @@ app.use("/api/sections", sectionsRoutes);
 app.use("/api/upload", uploadRoutes);
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", database: isDatabaseAvailable() });
 });
+
+// Catch DB-not-available errors so the server doesn't crash
+const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
+  if (err.message === "Database is not available") {
+    res.status(503).json({ error: "Database is not available. Please install and configure PostgreSQL." });
+    return;
+  }
+  next(err);
+};
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
