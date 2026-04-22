@@ -49,7 +49,7 @@
     "downloadPNG": "Download PNG"
   },
   "login": {
-    "title": "Sign in — trans.al",
+    "title": "Sign in — trans.square.al",
     "heading": "Sign in",
     "createAccount": "Create account",
     "sidebarHeading": "Logistics control for cargo moving in and out of Albania.",
@@ -228,7 +228,7 @@
     "packagesTotal": "{{count}} packages total"
   },
   "track": {
-    "title": "Track Package — trans.al",
+    "title": "Track Package — trans.square.al",
     "heading": "Package Tracking",
     "confirmed": "Package confirmed",
     "deliveryConfirmed": "Delivery confirmed on",
@@ -267,7 +267,7 @@
     "manualFallback": "Or use the manual entry option below to type the code from the package label",
     "enterCodeManually": "Enter code manually instead",
     "pointCamera": "Point your camera at the QR code on the package",
-    "footer": "trans.al — Logistics Manager"
+    "footer": "trans.square.al — Logistics Manager"
   },
   "settings": {
     "title": "Settings",

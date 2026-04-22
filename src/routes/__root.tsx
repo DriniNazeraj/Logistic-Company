@@ -37,7 +37,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Trans.al — Logistics Manager" },
+      { title: "Trans.square.al — Logistics Manager" },
       { name: "description", content: "Track cargo, packages and warehouses for Albanian logistics operations." },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
@@ -123,7 +123,7 @@ function AppShell() {
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
           <Truck className="h-4 w-4" />
         </div>
-        <div className="font-mono text-sm font-semibold tracking-tight">trans.al</div>
+        <div className="font-mono text-sm font-semibold tracking-tight">trans.square.al</div>
         {/* Close button for mobile */}
         <button
           onClick={() => setMobileOpen(false)}

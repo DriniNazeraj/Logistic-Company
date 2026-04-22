@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/cargo/$id")({
   head: () => ({
-    meta: [{ title: "Detajet e ngarkeses — trans.al" }],
+    meta: [{ title: "Detajet e ngarkeses — trans.square.al" }],
   }),
   component: CargoDetail,
 });

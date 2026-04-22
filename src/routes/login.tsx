@@ -7,15 +7,14 @@ import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Identifikohu — trans.al" }],
+    meta: [{ title: "Identifikohu — trans.square.al" }],
   }),
   component: LoginPage,
 });
 
 function LoginPage() {
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,13 +28,8 @@ function LoginPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      if (mode === "signin") {
-        await signIn(email, password);
-        toast.success(t("login.welcomeBack"));
-      } else {
-        await signUp(email, password);
-        toast.success(t("login.accountCreated"));
-      }
+      await signIn(email, password);
+      toast.success(t("login.welcomeBack"));
       navigate({ to: "/" });
     } catch (err) {
       toast.error((err as Error).message ?? t("login.authFailed"));
@@ -53,7 +47,7 @@ function LoginPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
               <Truck className="h-4 w-4" />
             </div>
-            <span className="font-mono text-sm font-semibold">trans.al</span>
+            <span className="font-mono text-sm font-semibold">trans.square.al</span>
           </div>
           <div className="space-y-3">
             <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
@@ -72,12 +66,10 @@ function LoginPage() {
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {mode === "signin" ? t("login.heading") : t("login.createAccount")}
+            {t("login.heading")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin"
-              ? t("login.accessDashboard")
-              : t("login.setupAccount")}
+            {t("login.accessDashboard")}
           </p>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
@@ -89,7 +81,7 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-md border border-input bg-input px-3 py-2 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2"
-                placeholder="manager@trans.al"
+                placeholder="manager@trans.square.al"
               />
             </div>
             <div className="space-y-1.5">
@@ -109,35 +101,10 @@ function LoginPage() {
               disabled={busy}
               className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? t("login.pleaseWait") : mode === "signin" ? t("login.signInButton") : t("login.createButton")}
+              {busy ? t("login.pleaseWait") : t("login.signInButton")}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-muted-foreground">
-            {mode === "signin" ? (
-              <>
-                {t("login.noAccount")}{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signup")}
-                  className="text-foreground underline-offset-4 hover:underline"
-                >
-                  {t("login.createOne")}
-                </button>
-              </>
-            ) : (
-              <>
-                {t("login.haveAccount")}{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signin")}
-                  className="text-foreground underline-offset-4 hover:underline"
-                >
-                  {t("login.signIn")}
-                </button>
-              </>
-            )}
-          </div>
 
           <div className="mt-10 text-center">
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
