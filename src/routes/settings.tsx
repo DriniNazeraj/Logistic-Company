@@ -7,12 +7,14 @@ import { Field, Input, Select, Button } from "@/components/ui-kit";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
 import type { Currency } from "@/lib/format";
+import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — trans.al" },
-      { name: "description", content: "Manage exchange rates and app settings." },
+      { title: "Cilesimet — trans.al" },
+      { name: "description", content: "Menaxhoni kurset e kembimit dhe cilesimet e aplikacionit." },
     ],
   }),
   component: SettingsPage,
@@ -43,6 +45,7 @@ function SettingsPage() {
   );
   const [busy, setBusy] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -89,7 +92,7 @@ function SettingsPage() {
         rate: Number(rates[`${pair.from}_${pair.to}`]) || 0,
       }));
       await api.settings.saveExchangeRates(payload);
-      toast.success("Exchange rates saved");
+      toast.success(t("settings.ratesSaved"));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -101,45 +104,70 @@ function SettingsPage() {
   return (
     <>
       <PageHeader
-        title="Settings"
-        description="Manage currency exchange rates."
+        title={t("settings.title")}
+        description={t("settings.description")}
       />
       <PageBody>
         {busy ? (
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         ) : (
           <div className="max-w-lg space-y-6">
-            {/* Default overview currency */}
+            {/* Language */}
             <div className="rounded-lg border border-border bg-card p-5">
-              <h2 className="text-sm font-semibold">Overview Currency</h2>
+              <h2 className="text-sm font-semibold">{t("settings.language")}</h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Choose which currency is shown as the main total on the Overview dashboard.
+                {t("settings.languageDescription")}
               </p>
               <div className="mt-4 max-w-[200px]">
-                <Field label="Default currency">
+                <Field label={t("settings.languageLabel")}>
+                  <Select
+                    value={i18n.language}
+                    onChange={(e) => {
+                      const lang = e.target.value;
+                      i18n.changeLanguage(lang);
+                      localStorage.setItem("app_language", lang);
+                      document.documentElement.lang = lang;
+                      toast.success(t("settings.languageChanged", { language: lang === "en" ? "English" : "Shqip" }));
+                    }}
+                  >
+                    <option value="en">{t("settings.languageEN")}</option>
+                    <option value="sq">{t("settings.languageSQ")}</option>
+                  </Select>
+                </Field>
+              </div>
+            </div>
+
+            {/* Default overview currency */}
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-sm font-semibold">{t("settings.overviewCurrency")}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("settings.overviewCurrencyDescription")}
+              </p>
+              <div className="mt-4 max-w-[200px]">
+                <Field label={t("settings.defaultCurrency")}>
                   <Select
                     value={defaultCurrency}
                     onChange={(e) => {
                       const val = e.target.value as Currency;
                       setDefaultCurrency(val);
                       localStorage.setItem("overview_currency", val);
-                      toast.success(`Overview currency set to ${val}`);
+                      toast.success(t("settings.currencySetTo", { currency: val }));
                     }}
                   >
-                    <option value="USD">🇺🇸 US Dollar (USD)</option>
-                    <option value="EUR">🇪🇺 Euro (EUR)</option>
-                    <option value="ALL">🇦🇱 Albanian Lek (ALL)</option>
+                    <option value="USD">{t("settings.currencyUSD")}</option>
+                    <option value="EUR">{t("settings.currencyEUR")}</option>
+                    <option value="ALL">{t("settings.currencyALL")}</option>
                   </Select>
                 </Field>
               </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5">
-              <h2 className="text-sm font-semibold">Exchange Rates</h2>
+              <h2 className="text-sm font-semibold">{t("settings.exchangeRates")}</h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Set the conversion rates between currencies. These are used to calculate cargo totals.
+                {t("settings.exchangeRatesDescription")}
               </p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {PAIRS.map((pair) => {
@@ -162,7 +190,7 @@ function SettingsPage() {
               <div className="mt-4 flex justify-end">
                 <Button onClick={save} disabled={saving}>
                   <Save className="h-3.5 w-3.5" />
-                  {saving ? "Saving…" : "Save rates"}
+                  {saving ? t("common.saving") : t("settings.saveRates")}
                 </Button>
               </div>
             </div>

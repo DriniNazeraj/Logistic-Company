@@ -3,12 +3,13 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
 import { formatMoney, formatDate } from "@/lib/format";
 import { Package as PackageIcon, MapPin, Calendar, CreditCard, User, Phone, Mail, IdCard, ScanLine, CheckCircle2, XCircle, Camera, KeyboardIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/track/$code")({
   head: () => ({
     meta: [
-      { title: "Track Package — trans.al" },
-      { name: "description", content: "Track your package status." },
+      { title: "Gjurmo Paketen — trans.al" },
+      { name: "description", content: "Gjurmoni statusin e paketes tuaj." },
     ],
   }),
   component: TrackPage,
@@ -49,6 +50,7 @@ function TrackPage() {
   const [cargo, setCargo] = useState<CargoInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const { t } = useTranslation();
 
   // Scan state
   const [scanning, setScanning] = useState(false);
@@ -114,17 +116,17 @@ function TrackPage() {
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
           <div className="max-w-md text-center space-y-4">
             <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
-            <h1 className="text-xl font-semibold text-foreground">Package Delivered</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t("track.packageDelivered")}</h1>
             <p className="text-sm text-muted-foreground">
-              This package has been confirmed and delivered successfully.
+              {t("track.deliveredDescription")}
             </p>
             {confirmedAt && (
               <p className="text-xs text-muted-foreground">
-                Confirmed on {formatDate(confirmedAt)}
+                {t("track.deliveryConfirmed")} {formatDate(confirmedAt)}
               </p>
             )}
             <div className="pt-2 text-xs text-muted-foreground">
-              trans.al — Logistics Manager
+              {t("track.footer")}
             </div>
           </div>
         </div>
@@ -134,9 +136,9 @@ function TrackPage() {
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
           <PackageIcon className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <h1 className="mt-4 text-xl font-semibold text-foreground">Package not found</h1>
+          <h1 className="mt-4 text-xl font-semibold text-foreground">{t("track.packageNotFound")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            No package with code <span className="font-mono">{code}</span> was found.
+            {t("track.packageNotFoundDescription", { code })}
           </p>
         </div>
       </div>
@@ -148,16 +150,16 @@ function TrackPage() {
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
           <PackageIcon className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <h1 className="mt-4 text-xl font-semibold text-foreground">Package not found</h1>
+          <h1 className="mt-4 text-xl font-semibold text-foreground">{t("track.packageNotFound")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            No package with code <span className="font-mono">{code}</span> was found.
+            {t("track.packageNotFoundDescription", { code })}
           </p>
         </div>
       </div>
     );
   }
 
-  const paymentLabel = { paid: "Paid", on_delivery: "Pay on delivery", partly: "Partly paid" }[pkg.payment_status] ?? pkg.payment_status;
+  const paymentLabel = { paid: t("track.paidStatus"), on_delivery: t("track.onDeliveryStatus"), partly: t("track.partlyPaidStatus") }[pkg.payment_status] ?? pkg.payment_status;
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-400",
     in_transit: "bg-blue-500/20 text-blue-400",
@@ -174,7 +176,7 @@ function TrackPage() {
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-foreground text-background">
             <PackageIcon className="h-5 w-5" />
           </div>
-          <h1 className="mt-3 text-lg font-semibold text-foreground">Package Tracking</h1>
+          <h1 className="mt-3 text-lg font-semibold text-foreground">{t("track.heading")}</h1>
           <p className="font-mono text-sm text-muted-foreground">{pkg.package_code}</p>
         </div>
 
@@ -183,9 +185,9 @@ function TrackPage() {
           <div className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-4">
             <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
             <div>
-              <div className="text-sm font-medium text-green-500">Package confirmed</div>
+              <div className="text-sm font-medium text-green-500">{t("track.confirmed")}</div>
               <div className="text-xs text-green-500/70">
-                Delivery confirmed on {formatDate(confirmedAt)}
+                {t("track.deliveryConfirmed")} {formatDate(confirmedAt)}
               </div>
             </div>
           </div>
@@ -194,18 +196,18 @@ function TrackPage() {
         {/* Scan to confirm section */}
         {!isConfirmed && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Confirm Delivery</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("track.confirmDelivery")}</h3>
             <p className="text-sm text-muted-foreground">
-              Scan the QR code on your package to verify it's yours and confirm delivery.
+              {t("track.scanInstruction")}
             </p>
 
             {scanResult === "mismatch" && (
               <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
                 <XCircle className="h-5 w-5 shrink-0 text-red-500" />
                 <div>
-                  <div className="text-sm font-medium text-red-500">QR code doesn't match</div>
+                  <div className="text-sm font-medium text-red-500">{t("track.qrMismatch")}</div>
                   <div className="text-xs text-red-500/70">
-                    The scanned package is not the same as this tracking link. Try again.
+                    {t("track.qrMismatchDescription")}
                   </div>
                 </div>
               </div>
@@ -214,7 +216,7 @@ function TrackPage() {
             {confirming ? (
               <div className="flex items-center justify-center py-4">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Confirming…</span>
+                <span className="ml-2 text-sm text-muted-foreground">{t("track.confirming")}</span>
               </div>
             ) : scanning ? (
               <QrScanner
@@ -225,13 +227,13 @@ function TrackPage() {
             ) : manualEntry ? (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Type the package code printed below the QR code on your box:
+                  {t("track.manualInstruction")}
                 </p>
                 <input
                   type="text"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="e.g. PKG-ABC123"
+                  placeholder="p.sh. PKG-ABC123"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2"
                   autoFocus
                 />
@@ -243,13 +245,13 @@ function TrackPage() {
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  Confirm package
+                  {t("track.confirmPackage")}
                 </button>
                 <button
                   onClick={() => { setManualEntry(false); setScanResult(null); }}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 >
-                  Back
+                  {t("common.back")}
                 </button>
               </div>
             ) : (
@@ -259,14 +261,14 @@ function TrackPage() {
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
                 >
                   <ScanLine className="h-4 w-4" />
-                  Scan package QR code
+                  {t("track.scanQR")}
                 </button>
                 <button
                   onClick={() => { setScanResult(null); setManualEntry(true); }}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 >
                   <KeyboardIcon className="h-4 w-4" />
-                  Enter code manually
+                  {t("track.enterManually")}
                 </button>
               </div>
             )}
@@ -289,7 +291,7 @@ function TrackPage() {
         {/* Shipping */}
         {cargo && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Shipping</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("track.shipping")}</h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -298,16 +300,16 @@ function TrackPage() {
                 <span>{cargo.destination_country}</span>
               </div>
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor}`}>
-                {cargo.status === "in_transit" ? "In transit" : cargo.status.charAt(0).toUpperCase() + cargo.status.slice(1)}
+                {cargo.status === "in_transit" ? t("status.inTransit") : cargo.status === "pending" ? t("status.pending") : cargo.status === "delivered" ? t("status.delivered") : cargo.status}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-xs text-muted-foreground">Destination</div>
+                <div className="text-xs text-muted-foreground">{t("track.destinationLabel")}</div>
                 <div>{pkg.destination_location ?? "—"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Cargo</div>
+                <div className="text-xs text-muted-foreground">{t("track.cargoLabel")}</div>
                 <div className="font-mono text-xs">{cargo.cargo_code}</div>
               </div>
             </div>
@@ -316,19 +318,19 @@ function TrackPage() {
 
         {/* Dates */}
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Dates</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("track.dates")}</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="flex items-start gap-2">
               <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
               <div>
-                <div className="text-xs text-muted-foreground">Delivery</div>
+                <div className="text-xs text-muted-foreground">{t("track.deliveryLabel")}</div>
                 <div>{formatDate(pkg.delivery_date)}</div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
               <div>
-                <div className="text-xs text-muted-foreground">Arrival</div>
+                <div className="text-xs text-muted-foreground">{t("track.arrivalLabel")}</div>
                 <div>{formatDate(pkg.arrival_date)}</div>
               </div>
             </div>
@@ -337,7 +339,7 @@ function TrackPage() {
 
         {/* Payment */}
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("track.payment")}</h3>
           <div className="flex items-center gap-2 text-sm">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <span>{paymentLabel}</span>
@@ -345,11 +347,11 @@ function TrackPage() {
           {pkg.payment_status === "partly" && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-xs text-muted-foreground">Paid</div>
+                <div className="text-xs text-muted-foreground">{t("track.paidAmount")}</div>
                 <div className="text-green-400">{formatMoney(pkg.amount_paid, pkg.currency)}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Remaining</div>
+                <div className="text-xs text-muted-foreground">{t("track.remainingAmount")}</div>
                 <div className="text-yellow-400">{formatMoney(pkg.amount_remaining, pkg.currency)}</div>
               </div>
             </div>
@@ -359,7 +361,7 @@ function TrackPage() {
         {/* Client */}
         {pkg.client_name && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Recipient</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("track.recipient")}</h3>
             <div className="space-y-1.5 text-sm">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
@@ -388,20 +390,21 @@ function TrackPage() {
         )}
 
         <div className="pt-2 text-center text-xs text-muted-foreground">
-          trans.al — Logistics Manager
+          {t("track.footer")}
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── QR Scanner Component ─── */
+/* --- QR Scanner Component --- */
 
 function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => void; onClose: () => void; onFallback: () => void }) {
   const scannerRef = useRef<HTMLDivElement>(null);
   const scannerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isHttps] = useState(() => window.location.protocol === "https:" || window.location.hostname === "localhost");
+  const { t } = useTranslation();
 
   useEffect(() => {
     let stopped = false;
@@ -431,9 +434,9 @@ function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => 
         );
       } catch {
         if (!isHttps) {
-          setError("Camera requires a secure (HTTPS) connection. This page is using HTTP, so the browser blocks camera access.");
+          setError(t("track.cameraHttpsError"));
         } else {
-          setError("Could not access camera. Your browser may have blocked permission.");
+          setError(t("track.cameraPermissionError"));
         }
       }
     };
@@ -444,7 +447,7 @@ function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => 
       stopped = true;
       scannerInstanceRef.current?.stop().catch(() => {});
     };
-  }, [onScan, isHttps]);
+  }, [onScan, isHttps, t]);
 
   return (
     <div className="space-y-3">
@@ -460,26 +463,26 @@ function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => 
       {error && (
         <div className="space-y-3">
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm">
-            <div className="font-medium text-red-500">Camera not available</div>
+            <div className="font-medium text-red-500">{t("track.cameraNotAvailable")}</div>
             <div className="mt-1 text-xs text-red-500/80">{error}</div>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-            <div className="text-xs font-medium text-muted-foreground">What you can do:</div>
+            <div className="text-xs font-medium text-muted-foreground">{t("track.whatYouCanDo")}</div>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
               {!isHttps && (
                 <li className="flex items-start gap-2">
                   <span className="mt-0.5 shrink-0">1.</span>
-                  <span>Ask the sender for an HTTPS link, or open this page in a browser that supports camera over HTTP</span>
+                  <span>{t("track.httpsHint")}</span>
                 </li>
               )}
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 shrink-0">{isHttps ? "1" : "2"}.</span>
-                <span>Check your browser settings and allow camera permission for this site</span>
+                <span>{t("track.checkPermission")}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 shrink-0">{isHttps ? "2" : "3"}.</span>
-                <span>Or use the manual entry option below to type the code from the package label</span>
+                <span>{t("track.manualFallback")}</span>
               </li>
             </ul>
           </div>
@@ -489,14 +492,14 @@ function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => 
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
           >
             <KeyboardIcon className="h-4 w-4" />
-            Enter code manually instead
+            {t("track.enterCodeManually")}
           </button>
         </div>
       )}
 
       {!error && (
         <p className="text-center text-xs text-muted-foreground">
-          Point your camera at the QR code on the package
+          {t("track.pointCamera")}
         </p>
       )}
 
@@ -504,7 +507,7 @@ function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => 
         onClick={onClose}
         className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
       >
-        Cancel
+        {t("common.cancel")}
       </button>
     </div>
   );

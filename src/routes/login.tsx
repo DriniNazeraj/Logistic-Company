@@ -3,10 +3,11 @@ import { useState, FormEvent, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Truck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Sign in — trans.al" }],
+    meta: [{ title: "Identifikohu — trans.al" }],
   }),
   component: LoginPage,
 });
@@ -18,6 +19,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) navigate({ to: "/" });
@@ -29,14 +31,14 @@ function LoginPage() {
     try {
       if (mode === "signin") {
         await signIn(email, password);
-        toast.success("Welcome back");
+        toast.success(t("login.welcomeBack"));
       } else {
         await signUp(email, password);
-        toast.success("Account created. You're signed in.");
+        toast.success(t("login.accountCreated"));
       }
       navigate({ to: "/" });
     } catch (err) {
-      toast.error((err as Error).message ?? "Authentication failed");
+      toast.error((err as Error).message ?? t("login.authFailed"));
     } finally {
       setBusy(false);
     }
@@ -55,15 +57,14 @@ function LoginPage() {
           </div>
           <div className="space-y-3">
             <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
-              Logistics control for cargo moving in and out of Albania.
+              {t("login.sidebarHeading")}
             </h2>
             <p className="max-w-sm text-sm text-muted-foreground">
-              Track shipments, manage packages, and design warehouse layouts visually — all in one
-              control plane.
+              {t("login.sidebarDescription")}
             </p>
           </div>
           <div className="font-mono text-[11px] text-muted-foreground">
-            Tirana · Durrës · Vlorë
+            {t("login.sidebarCities")}
           </div>
         </div>
       </div>
@@ -71,17 +72,17 @@ function LoginPage() {
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {mode === "signin" ? "Sign in" : "Create account"}
+            {mode === "signin" ? t("login.heading") : t("login.createAccount")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin"
-              ? "Access your logistics dashboard."
-              : "Set up your manager account."}
+              ? t("login.accessDashboard")
+              : t("login.setupAccount")}
           </p>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("login.emailLabel")}</label>
               <input
                 type="email"
                 required
@@ -92,7 +93,7 @@ function LoginPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Password</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("login.passwordLabel")}</label>
               <input
                 type="password"
                 required
@@ -108,31 +109,31 @@ function LoginPage() {
               disabled={busy}
               className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+              {busy ? t("login.pleaseWait") : mode === "signin" ? t("login.signInButton") : t("login.createButton")}
             </button>
           </form>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">
             {mode === "signin" ? (
               <>
-                No account?{" "}
+                {t("login.noAccount")}{" "}
                 <button
                   type="button"
                   onClick={() => setMode("signup")}
                   className="text-foreground underline-offset-4 hover:underline"
                 >
-                  Create one
+                  {t("login.createOne")}
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{" "}
+                {t("login.haveAccount")}{" "}
                 <button
                   type="button"
                   onClick={() => setMode("signin")}
                   className="text-foreground underline-offset-4 hover:underline"
                 >
-                  Sign in
+                  {t("login.signIn")}
                 </button>
               </>
             )}
@@ -140,7 +141,7 @@ function LoginPage() {
 
           <div className="mt-10 text-center">
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
-              ← Back
+              {t("login.backLink")}
             </Link>
           </div>
         </div>

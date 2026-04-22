@@ -8,12 +8,13 @@ import { shortId } from "@/lib/format";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
     meta: [
-      { title: "Calendar — trans.al" },
-      { name: "description", content: "Calendar view of cargo departures and arrivals." },
+      { title: "Kalendari — trans.al" },
+      { name: "description", content: "Pamja e kalendarit te nisjeve dhe mberritjeve te ngarkesave." },
     ],
   }),
   component: CalendarPage,
@@ -38,8 +39,6 @@ interface CargoEvent {
   date: string; // YYYY-MM-DD
 }
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -60,6 +59,9 @@ function CalendarPage() {
   const navigate = useNavigate();
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [busy, setBusy] = useState(true);
+  const { t } = useTranslation();
+
+  const WEEKDAYS = t("calendar.weekdays", { returnObjects: true }) as string[];
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -116,7 +118,7 @@ function CalendarPage() {
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfWeek(year, month);
-  const monthLabel = new Date(year, month).toLocaleString("en-US", { month: "long", year: "numeric" });
+  const monthLabel = new Date(year, month).toLocaleString("sq-AL", { month: "long", year: "numeric" });
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   // Build grid cells (6 rows max)
@@ -133,7 +135,7 @@ function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="Calendar" description="Cargo departures and arrivals overview." />
+      <PageHeader title={t("calendar.title")} description={t("calendar.description")} />
       <PageBody>
         {/* Month navigation */}
         <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
@@ -146,7 +148,7 @@ function CalendarPage() {
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button variant="ghost" onClick={goToday} className="ml-1 text-xs">
-              Today
+              {t("common.today")}
             </Button>
           </div>
 
@@ -154,18 +156,18 @@ function CalendarPage() {
           <div className="flex items-center gap-4 text-xs text-muted-foreground sm:ml-auto">
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-              Departure
+              {t("calendar.departure")}
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              Arrival
+              {t("calendar.arrival")}
             </span>
           </div>
         </div>
 
         {busy ? (
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border bg-card">
@@ -214,7 +216,7 @@ function CalendarPage() {
                               ? "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 dark:text-blue-400"
                               : "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400")
                           }
-                          title={`${ev.type === "departure" ? "Departs" : "Arrives"}: ${ev.cargo.cargo_code || shortId(ev.cargo.id)} — ${ev.cargo.departure_country} → ${ev.cargo.destination_country}\nClick to view packages`}
+                          title={`${ev.type === "departure" ? t("calendar.departs") : t("calendar.arrives")}: ${ev.cargo.cargo_code || shortId(ev.cargo.id)} — ${ev.cargo.departure_country} → ${ev.cargo.destination_country}\n${t("calendar.clickToView")}`}
                         >
                           <span className={
                             "h-1.5 w-1.5 shrink-0 rounded-full " +
@@ -227,7 +229,7 @@ function CalendarPage() {
                       ))}
                       {events.length > 3 && (
                         <span className="px-1.5 text-[10px] text-muted-foreground">
-                          +{events.length - 3} more
+                          {t("calendar.more", { count: events.length - 3 })}
                         </span>
                       )}
                     </div>

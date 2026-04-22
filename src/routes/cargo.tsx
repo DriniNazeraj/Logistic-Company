@@ -9,12 +9,13 @@ import { formatMoney, formatDate, shortId, Currency, currencyForCountry, convert
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/cargo")({
   head: () => ({
     meta: [
-      { title: "Cargos — trans.al" },
-      { name: "description", content: "Manage cargo shipments between countries." },
+      { title: "Ngarkesat — trans.al" },
+      { name: "description", content: "Menaxhoni ngarkesat midis vendeve." },
     ],
   }),
   component: CargosPage,
@@ -46,6 +47,7 @@ function CargosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cargo | null>(null);
   const [query, setQuery] = useState("");
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -109,10 +111,10 @@ function CargosPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this cargo? Packages will be unlinked.")) return;
+    if (!confirm(t("cargo.deleteConfirm"))) return;
     try {
       await api.cargos.delete(id);
-      toast.success("Cargo deleted");
+      toast.success(t("cargo.cargoDeleted"));
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -124,11 +126,11 @@ function CargosPage() {
   return (
     <>
       <PageHeader
-        title="Cargos"
-        description="All shipments moving in and out of Albania."
+        title={t("cargo.title")}
+        description={t("cargo.description")}
         actions={
           <Button onClick={startCreate}>
-            <Plus className="h-4 w-4" /> New cargo
+            <Plus className="h-4 w-4" /> {t("cargo.newCargo")}
           </Button>
         }
       />
@@ -137,7 +139,7 @@ function CargosPage() {
           <div className="relative max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search code or country…"
+              placeholder={t("cargo.searchPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-8"
@@ -147,15 +149,15 @@ function CargosPage() {
 
         {busy ? (
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            title="No cargos yet"
-            description="Create your first cargo shipment to start tracking."
+            title={t("cargo.noCargosYet")}
+            description={t("cargo.noCargosDescription")}
             action={
               <Button onClick={startCreate}>
-                <Plus className="h-4 w-4" /> New cargo
+                <Plus className="h-4 w-4" /> {t("cargo.newCargo")}
               </Button>
             }
           />
@@ -164,13 +166,13 @@ function CargosPage() {
             <table className="w-full min-w-[700px]">
               <thead className="bg-secondary/50">
                 <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Code</th>
-                  <th className="px-4 py-2.5 font-medium">Route</th>
-                  <th className="px-4 py-2.5 font-medium">Departure</th>
-                  <th className="px-4 py-2.5 font-medium">Arrival</th>
-                  <th className="px-4 py-2.5 font-medium">Packages</th>
-                  <th className="px-4 py-2.5 font-medium">Total</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
+                  <th className="px-4 py-2.5 font-medium">{t("cargo.code")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("cargo.route")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("cargo.departure")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("cargo.arrival")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("cargo.packages")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("cargo.total")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("common.status")}</th>
                   <th className="px-4 py-2.5"></th>
                 </tr>
               </thead>
@@ -222,7 +224,7 @@ function CargosPage() {
         )}
       </PageBody>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Edit cargo" : "New cargo"}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t("cargo.editCargo") : t("cargo.newCargoTitle")}>
         <CargoForm
           initial={editing}
           onSaved={() => {
@@ -250,11 +252,12 @@ function CargoForm({
   const [status, setStatus] = useState(initial?.status ?? "pending");
   const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "USD");
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (dep && arr && arr < dep) {
-      return toast.error("Arrival date cannot be before the departure date.");
+      return toast.error(t("cargo.arrivalBeforeDeparture"));
     }
     setBusy(true);
     const payload = {
@@ -272,7 +275,7 @@ function CargoForm({
       } else {
         await api.cargos.create(payload);
       }
-      toast.success(initial ? "Cargo updated" : "Cargo created");
+      toast.success(initial ? t("cargo.cargoUpdated") : t("cargo.cargoCreated"));
       onSaved();
     } catch (err: any) {
       toast.error(err.message);
@@ -282,18 +285,18 @@ function CargoForm({
 
   return (
     <FormShell onSubmit={submit}>
-      <Field label="Cargo code" hint="Leave blank to auto-generate.">
+      <Field label={t("cargo.cargoCode")} hint={t("cargo.autoGenerate")}>
         <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="CRG-001" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Departure country">
+        <Field label={t("cargo.departureCountry")}>
           <Select value={from} onChange={(e) => setFrom(e.target.value)}>
             {COUNTRIES.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </Select>
         </Field>
-        <Field label="Destination country">
+        <Field label={t("cargo.destinationCountry")}>
           <Select value={to} onChange={(e) => setTo(e.target.value)}>
             {COUNTRIES.map((c) => (
               <option key={c}>{c}</option>
@@ -302,32 +305,32 @@ function CargoForm({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Departure date">
+        <Field label={t("cargo.departureDate")}>
           <Input type="date" value={dep ?? ""} onChange={(e) => { setDep(e.target.value); if (arr && e.target.value && arr < e.target.value) setArr(""); }} />
         </Field>
-        <Field label="Arrival date">
+        <Field label={t("cargo.arrivalDate")}>
           <Input type="date" value={arr ?? ""} min={dep || undefined} onChange={(e) => setArr(e.target.value)} />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Status">
+        <Field label={t("common.status")}>
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="pending">Pending</option>
-            <option value="in_transit">In transit</option>
-            <option value="delivered">Delivered</option>
+            <option value="pending">{t("cargo.pending")}</option>
+            <option value="in_transit">{t("cargo.inTransit")}</option>
+            <option value="delivered">{t("cargo.delivered")}</option>
           </Select>
         </Field>
-        <Field label="Default currency" hint="Used for cargo-level totals.">
+        <Field label={t("cargo.defaultCurrency")} hint={t("cargo.currencyHint")}>
           <Select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
-            <option value="EUR">🇪🇺 Euro (EUR)</option>
-            <option value="USD">🇺🇸 US Dollar (USD)</option>
-            <option value="ALL">🇦🇱 Albanian Lek (ALL)</option>
+            <option value="EUR">{t("cargo.currencyEUR")}</option>
+            <option value="USD">{t("cargo.currencyUSD")}</option>
+            <option value="ALL">{t("cargo.currencyALL")}</option>
           </Select>
         </Field>
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Saving…" : initial ? "Save changes" : "Create cargo"}
+          {busy ? t("common.saving") : initial ? t("common.saveChanges") : t("cargo.createCargo")}
         </Button>
       </div>
     </FormShell>

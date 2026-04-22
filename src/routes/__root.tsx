@@ -4,24 +4,27 @@ import { Toaster } from "sonner";
 import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut, Settings, Sun, Moon, CalendarDays, Users, Menu, X } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider, useTheme } from "@/lib/theme-context";
+import { useTranslation } from "react-i18next";
+import "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold tracking-tight text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold">{t("notFound.title")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page doesn't exist.
+          {t("notFound.description")}
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Go home
+            {t("notFound.goHome")}
           </Link>
         </div>
       </div>
@@ -84,6 +87,7 @@ function AppShell() {
   const { user, loading, signOut } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
   const isPublicRoute = location.pathname === "/login" || location.pathname.startsWith("/track/");
 
   // Close mobile sidebar on route change
@@ -104,13 +108,13 @@ function AppShell() {
   }
 
   const nav = [
-    { to: "/", label: "Overview", icon: LayoutDashboard },
-    { to: "/cargo", label: "Cargos", icon: Truck },
-    { to: "/calendar", label: "Calendar", icon: CalendarDays },
-    { to: "/package", label: "Packages", icon: Package },
-    { to: "/clients", label: "Clients", icon: Users },
-    { to: "/warehouse", label: "Warehouses", icon: WarehouseIcon },
-    { to: "/settings", label: "Settings", icon: Settings },
+    { to: "/", label: t("nav.overview"), icon: LayoutDashboard },
+    { to: "/cargo", label: t("nav.cargos"), icon: Truck },
+    { to: "/calendar", label: t("nav.calendar"), icon: CalendarDays },
+    { to: "/package", label: t("nav.packages"), icon: Package },
+    { to: "/clients", label: t("nav.clients"), icon: Users },
+    { to: "/warehouse", label: t("nav.warehouses"), icon: WarehouseIcon },
+    { to: "/settings", label: t("nav.settings"), icon: Settings },
   ] as const;
 
   const sidebarContent = (
@@ -156,7 +160,7 @@ function AppShell() {
           className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Sign out
+          {t("nav.signOut")}
         </button>
       </div>
     </>
@@ -204,11 +208,12 @@ function AppShell() {
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
+  const { t } = useTranslation();
   return (
     <button
       onClick={toggle}
       className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      title={theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")}
     >
       {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>

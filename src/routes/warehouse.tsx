@@ -15,12 +15,13 @@ import {
   Warehouse as WarehouseIcon,
   GripVertical,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/warehouse")({
   head: () => ({
     meta: [
-      { title: "Warehouse — trans.al" },
-      { name: "description", content: "Manage your warehouse layout and sections." },
+      { title: "Magazinat — trans.al" },
+      { name: "description", content: "Menaxhoni hapesirat e magazines dhe seksionet." },
     ],
   }),
   component: WarehousePage,
@@ -74,6 +75,7 @@ function WarehousePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightSectionId, setHighlightSectionId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -87,7 +89,7 @@ function WarehousePage() {
     // Auto-create one if none exists
     if (list.length === 0) {
       try {
-        const created = await api.warehouses.create({ name: "Main Warehouse", location: null, canvas_width: 1000, canvas_height: 600 });
+        const created = await api.warehouses.create({ name: "Magazine Kryesore", location: null, canvas_width: 1000, canvas_height: 600 });
         list.push(created as Warehouse);
       } catch (err: any) {
         toast.error(err.message);
@@ -146,7 +148,7 @@ function WarehousePage() {
     const color = COLORS[sections.length % COLORS.length];
     const payload = {
       warehouse_id: warehouse.id,
-      name: `Section ${String.fromCharCode(65 + sections.length)}`,
+      name: `Seksioni ${String.fromCharCode(65 + sections.length)}`,
       color,
       x: 24,
       y: 24,
@@ -182,12 +184,12 @@ function WarehousePage() {
   };
 
   const deleteSection = async (sectionId: string) => {
-    if (!confirm("Delete this section?")) return;
+    if (!confirm(t("warehouse.deleteSectionConfirm"))) return;
     try {
       await api.sections.delete(sectionId);
       setSections((prev) => prev.filter((s) => s.id !== sectionId));
       setSelected(null);
-      toast.success("Section deleted");
+      toast.success(t("warehouse.sectionDeleted"));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -228,10 +230,10 @@ function WarehousePage() {
   if (busy || !warehouse) {
     return (
       <>
-        <PageHeader title="Warehouse" />
+        <PageHeader title={t("warehouse.title")} />
         <PageBody>
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         </PageBody>
       </>
@@ -241,8 +243,8 @@ function WarehousePage() {
   return (
     <>
       <PageHeader
-        title="Warehouses"
-        description="Manage your warehouse layouts and sections."
+        title={t("warehouse.title")}
+        description={t("warehouse.description")}
         actions={
           <div className="flex items-center gap-2">
             <Select
@@ -255,7 +257,7 @@ function WarehousePage() {
               ))}
             </Select>
             <Button variant="secondary" onClick={addWarehouse}>
-              <Plus className="h-3.5 w-3.5" /> New
+              <Plus className="h-3.5 w-3.5" /> {t("warehouse.newWarehouse")}
             </Button>
             <Button variant="secondary" onClick={() => setSettingsOpen(true)}>
               <Settings className="h-4 w-4" />
@@ -271,7 +273,7 @@ function WarehousePage() {
               <div className="relative max-w-[240px] flex-1">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by package code…"
+                  placeholder={t("warehouse.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => {
                     const q = e.target.value;
@@ -294,12 +296,12 @@ function WarehousePage() {
                 />
               </div>
               <div className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                {warehouse.canvas_width} × {warehouse.canvas_height} &middot;{" "}
-                {sections.length} section{sections.length === 1 ? "" : "s"}
+                {warehouse.canvas_width} x {warehouse.canvas_height} &middot;{" "}
+                {sections.length} {sections.length === 1 ? t("warehouse.sectionCountOne", { count: sections.length }) : t("warehouse.sectionCount", { count: sections.length })}
               </div>
               <div className="ml-auto">
                 <Button onClick={addSection}>
-                  <Plus className="h-3.5 w-3.5" /> Add section
+                  <Plus className="h-3.5 w-3.5" /> {t("warehouse.addSection")}
                 </Button>
               </div>
             </div>
@@ -366,7 +368,7 @@ function WarehousePage() {
                         </div>
                         <div className="mt-auto flex items-center justify-between">
                           <div className="font-mono text-[10px] text-muted-foreground">
-                            {Math.round(s.width)}×{Math.round(s.height)}
+                            {Math.round(s.width)}x{Math.round(s.height)}
                           </div>
                           <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
                             <PackageIcon className="h-3 w-3" />
@@ -400,9 +402,9 @@ function WarehousePage() {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
                       <WarehouseIcon className="mx-auto h-8 w-8 text-muted-foreground/40" />
-                      <p className="mt-2 text-sm text-muted-foreground">No sections yet.</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{t("warehouse.noSections")}</p>
                       <p className="mt-1 text-xs text-muted-foreground/70">
-                        Click "Add section" to start dividing your warehouse.
+                        {t("warehouse.addSectionHint")}
                       </p>
                     </div>
                   </div>
@@ -415,18 +417,18 @@ function WarehousePage() {
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {sel ? "Section properties" : "Select a section"}
+                {sel ? t("warehouse.sectionProperties") : t("warehouse.selectSection")}
               </div>
               {sel ? (
                 <div className="mt-3 space-y-3">
-                  <Field label="Name">
+                  <Field label={t("common.name")}>
                     <Input
                       value={sel.name}
                       onChange={(e) => updateSection(sel, { name: e.target.value })}
                       onBlur={() => persistSection(sel)}
                     />
                   </Field>
-                  <Field label="Color">
+                  <Field label={t("warehouse.color")}>
                     <div className="grid grid-cols-8 gap-1.5">
                       {COLORS.map((c) => (
                         <button
@@ -446,7 +448,7 @@ function WarehousePage() {
                     </div>
                   </Field>
                   <div className="grid grid-cols-2 gap-2">
-                    <Field label="Width">
+                    <Field label={t("warehouse.width")}>
                       <Input
                         type="number"
                         value={Math.round(sel.width)}
@@ -456,7 +458,7 @@ function WarehousePage() {
                         onBlur={() => persistSection(sel)}
                       />
                     </Field>
-                    <Field label="Height">
+                    <Field label={t("warehouse.height")}>
                       <Input
                         type="number"
                         value={Math.round(sel.height)}
@@ -472,25 +474,25 @@ function WarehousePage() {
                     className="w-full"
                     onClick={() => deleteSection(sel.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> Delete section
+                    <Trash2 className="h-3.5 w-3.5" /> {t("warehouse.deleteSection")}
                   </Button>
                 </div>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Click a section on the canvas to edit it. Drag to move, drag the corner to resize.
+                  {t("warehouse.selectSectionHint")}
                 </p>
               )}
             </div>
 
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Packages in section
+                {t("warehouse.packagesInSection")}
               </div>
               {sel ? (
                 <ul className="mt-2 space-y-1 text-sm">
                   {packages.filter((p) => p.section_id === sel.id).length === 0 ? (
                     <li className="text-xs text-muted-foreground">
-                      Drop packages here from the list below.
+                      {t("warehouse.dropPackagesHere")}
                     </li>
                   ) : (
                     packages
@@ -512,7 +514,7 @@ function WarehousePage() {
                           <button
                             onClick={() => assignPackage(p.id, null)}
                             className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                            title="Remove from section"
+                            title={t("warehouse.removeFromSection")}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -522,7 +524,7 @@ function WarehousePage() {
                 </ul>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Select a section to see its packages.
+                  {t("warehouse.selectSectionForPackages")}
                 </p>
               )}
             </div>
@@ -540,11 +542,11 @@ function WarehousePage() {
               }}
             >
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Unassigned packages ({unassigned.length})
+                {t("warehouse.unassignedPackages", { count: unassigned.length })}
               </div>
               {unassigned.length === 0 ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  All packages are assigned. Drop here to unassign.
+                  {t("warehouse.allAssigned")}
                 </p>
               ) : (
                 <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-sm">
@@ -576,7 +578,7 @@ function WarehousePage() {
       <Modal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        title="Warehouse settings"
+        title={t("warehouse.warehouseSettings")}
       >
         <WarehouseSettingsForm
           warehouse={warehouse}
@@ -591,7 +593,7 @@ function WarehousePage() {
       <Modal
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        title="New warehouse"
+        title={t("warehouse.newWarehouseTitle")}
       >
         <NewWarehouseForm
           onCreated={(created) => {
@@ -608,18 +610,19 @@ function NewWarehouseForm({ onCreated }: { onCreated: (w: Warehouse) => void }) 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
       const created = await api.warehouses.create({
-        name: name.trim() || "New Warehouse",
+        name: name.trim() || "Magazine e Re",
         location: location.trim() || null,
         canvas_width: 1000,
         canvas_height: 600,
       });
-      toast.success("Warehouse created");
+      toast.success(t("warehouse.warehouseCreated"));
       onCreated(created as Warehouse);
     } catch (err: any) {
       toast.error(err.message);
@@ -629,15 +632,15 @@ function NewWarehouseForm({ onCreated }: { onCreated: (w: Warehouse) => void }) 
 
   return (
     <FormShell onSubmit={submit}>
-      <Field label="Name">
-        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Warehouse name" />
+      <Field label={t("common.name")}>
+        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder={t("warehouse.warehouseNamePlaceholder")} />
       </Field>
-      <Field label="Location">
-        <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Tirana, Albania" />
+      <Field label={t("warehouse.location")}>
+        <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Tirane, Shqiperi" />
       </Field>
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Creating…" : "Create warehouse"}
+          {busy ? t("common.creating") : t("warehouse.createWarehouse")}
         </Button>
       </div>
     </FormShell>
@@ -656,6 +659,7 @@ function WarehouseSettingsForm({
   const [w, setW] = useState(warehouse.canvas_width);
   const [h, setH] = useState(warehouse.canvas_height);
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -663,7 +667,7 @@ function WarehouseSettingsForm({
     const payload = { name, location: location || null, canvas_width: w, canvas_height: h };
     try {
       await api.warehouses.update(warehouse.id, payload);
-      toast.success("Warehouse updated");
+      toast.success(t("warehouse.warehouseUpdated"));
       onSaved({ ...warehouse, ...payload });
     } catch (err: any) {
       toast.error(err.message);
@@ -673,27 +677,27 @@ function WarehouseSettingsForm({
 
   return (
     <FormShell onSubmit={submit}>
-      <Field label="Name">
-        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Main Warehouse" />
+      <Field label={t("common.name")}>
+        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Magazine Kryesore" />
       </Field>
-      <Field label="Location">
+      <Field label={t("warehouse.location")}>
         <Input
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          placeholder="Tirana, Albania"
+          placeholder="Tirane, Shqiperi"
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Canvas width" hint="Layout width in px.">
+        <Field label={t("warehouse.canvasWidth")} hint={t("warehouse.canvasWidthHint")}>
           <Input type="number" value={w} onChange={(e) => setW(Number(e.target.value))} min={400} />
         </Field>
-        <Field label="Canvas height">
+        <Field label={t("warehouse.canvasHeight")}>
           <Input type="number" value={h} onChange={(e) => setH(Number(e.target.value))} min={300} />
         </Field>
       </div>
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Saving…" : "Save changes"}
+          {busy ? t("common.saving") : t("common.saveChanges")}
         </Button>
       </div>
     </FormShell>

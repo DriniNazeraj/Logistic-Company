@@ -9,6 +9,7 @@ import { formatMoney, formatDate, shortId, Currency } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download, Link2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/package")({
   validateSearch: (search: Record<string, unknown>): { cargo?: string } => ({
@@ -16,8 +17,8 @@ export const Route = createFileRoute("/package")({
   }),
   head: () => ({
     meta: [
-      { title: "Packages — trans.al" },
-      { name: "description", content: "Manage individual packages and assign them to cargos." },
+      { title: "Paketat — trans.al" },
+      { name: "description", content: "Menaxhoni paketat individuale dhe caktoni ato ne ngarkesa." },
     ],
   }),
   component: PackagesPage,
@@ -78,6 +79,7 @@ function PackagesPage() {
   const [query, setQuery] = useState("");
   const [cargoFilter, setCargoFilter] = useState(cargoParam ?? "all");
   const [qrPkg, setQrPkg] = useState<Pkg | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -122,10 +124,10 @@ function PackagesPage() {
   }, [packages, query, cargoFilter]);
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this package?")) return;
+    if (!confirm(t("package.deleteConfirm"))) return;
     try {
       await api.packages.delete(id);
-      toast.success("Package deleted");
+      toast.success(t("package.packageDeleted"));
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -137,8 +139,8 @@ function PackagesPage() {
   return (
     <>
       <PageHeader
-        title="Packages"
-        description="Individual items inside cargo shipments."
+        title={t("package.title")}
+        description={t("package.description")}
         actions={
           <Button
             onClick={() => {
@@ -146,7 +148,7 @@ function PackagesPage() {
               setOpen(true);
             }}
           >
-            <Plus className="h-4 w-4" /> New package
+            <Plus className="h-4 w-4" /> {t("package.newPackage")}
           </Button>
         }
       />
@@ -155,7 +157,7 @@ function PackagesPage() {
           <div className="relative min-w-0 flex-[2] sm:max-w-xs sm:flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search packages…"
+              placeholder={t("package.searchPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-8"
@@ -166,8 +168,8 @@ function PackagesPage() {
             onChange={(e) => setCargoFilter(e.target.value)}
             className="w-28 shrink-0 sm:w-auto sm:max-w-xs"
           >
-            <option value="all">All cargos</option>
-            <option value="none">Unassigned</option>
+            <option value="all">{t("package.allCargos")}</option>
+            <option value="none">{t("common.unassigned")}</option>
             {cargos.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.cargo_code}
@@ -178,12 +180,12 @@ function PackagesPage() {
 
         {busy ? (
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            title="No packages"
-            description="Create packages and assign them to a cargo."
+            title={t("package.noPackages")}
+            description={t("package.noPackagesDescription")}
             action={
               <Button
                 onClick={() => {
@@ -191,7 +193,7 @@ function PackagesPage() {
                   setOpen(true);
                 }}
               >
-                <Plus className="h-4 w-4" /> New package
+                <Plus className="h-4 w-4" /> {t("package.newPackage")}
               </Button>
             }
           />
@@ -224,51 +226,51 @@ function PackagesPage() {
                     </div>
                     <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
                       <div className="flex justify-between gap-2">
-                        <span>Client</span>
+                        <span>{t("package.client")}</span>
                         <span className="truncate text-foreground">{p.client_name ?? "—"}</span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span>Phone</span>
+                        <span>{t("common.phone")}</span>
                         <span className="truncate text-foreground">{p.client_phone ?? "—"}</span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span>Payment</span>
+                        <span>{t("package.payment")}</span>
                         <span className="truncate text-foreground">
-                          {{ paid: "Paid", on_delivery: "On delivery", partly: "Partly" }[p.payment_status] ?? "—"}
+                          {{ paid: t("package.paid"), on_delivery: t("package.onDelivery"), partly: t("package.partly") }[p.payment_status] ?? "—"}
                         </span>
                       </div>
                       {p.payment_status === "partly" && (
                         <>
                           <div className="flex justify-between gap-2">
-                            <span>Paid</span>
+                            <span>{t("package.paid")}</span>
                             <span className="text-foreground">{formatMoney(p.amount_paid, p.currency)}</span>
                           </div>
                           <div className="flex justify-between gap-2">
-                            <span>Remaining</span>
+                            <span>{t("package.remaining")}</span>
                             <span className="text-foreground">{formatMoney(p.amount_remaining, p.currency)}</span>
                           </div>
                         </>
                       )}
                       <div className="flex justify-between gap-2">
-                        <span>Cargo</span>
-                        <span className="truncate text-foreground">{cargo?.cargo_code ?? "���"}</span>
+                        <span>{t("package.cargo")}</span>
+                        <span className="truncate text-foreground">{cargo?.cargo_code ?? "—"}</span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span>Warehouse</span>
+                        <span>{t("package.warehouse")}</span>
                         <span className="truncate text-foreground">{warehouse?.name ?? "—"}</span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span>Section</span>
+                        <span>{t("package.section")}</span>
                         <span className="truncate text-foreground">{section?.name ?? "—"}</span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span>Destination</span>
+                        <span>{t("package.destination")}</span>
                         <span className="truncate text-foreground">
                           {p.destination_location ?? "—"}
                         </span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span>Arrival</span>
+                        <span>{t("cargo.arrival")}</span>
                         <span className="text-foreground">{formatDate(p.arrival_date)}</span>
                       </div>
                     </div>
@@ -278,7 +280,7 @@ function PackagesPage() {
                         onClick={() => {
                           const url = `${window.location.origin}/track/${p.track_token}`;
                           navigator.clipboard.writeText(url);
-                          toast.success("Tracking link copied");
+                          toast.success(t("package.trackingCopied"));
                         }}
                       >
                         <Link2 className="h-3.5 w-3.5" />
@@ -310,7 +312,7 @@ function PackagesPage() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={editing ? "Edit package" : "New package"}
+        title={editing ? t("package.editPackage") : t("package.newPackageTitle")}
       >
         <PackageForm
           initial={editing}
@@ -327,7 +329,7 @@ function PackagesPage() {
       <Modal
         open={!!qrPkg}
         onClose={() => setQrPkg(null)}
-        title="Package QR Code"
+        title={t("package.qrCodeTitle")}
       >
         {qrPkg && <PackageQR pkg={qrPkg} />}
       </Modal>
@@ -337,7 +339,8 @@ function PackagesPage() {
 
 function PackageQR({ pkg }: { pkg: Pkg }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  const paymentLabel = { paid: "Paid", on_delivery: "On delivery", partly: "Partly" }[pkg.payment_status] ?? "—";
+  const { t } = useTranslation();
+  const paymentLabel = { paid: t("package.paid"), on_delivery: t("package.onDelivery"), partly: t("package.partly") }[pkg.payment_status] ?? "—";
 
   const trackUrl = `${window.location.origin}/track/${pkg.track_token}`;
 
@@ -396,10 +399,10 @@ function PackageQR({ pkg }: { pkg: Pkg }) {
       </div>
       <div className="flex gap-2">
         <Button variant="secondary" onClick={downloadQR}>
-          <Download className="h-3.5 w-3.5" /> Download PNG
+          <Download className="h-3.5 w-3.5" /> {t("common.downloadPNG")}
         </Button>
         <Button onClick={printQR}>
-          Print
+          {t("common.print")}
         </Button>
       </div>
     </div>
@@ -441,6 +444,7 @@ function PackageForm({
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   const availableSections = useMemo(
     () => (warehouseId ? sections.filter((s) => s.warehouse_id === warehouseId) : []),
@@ -459,7 +463,7 @@ function PackageForm({
     try {
       const url = await api.upload(file);
       setImageUrl(url);
-      toast.success("Image uploaded");
+      toast.success(t("package.imageUploaded"));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -494,7 +498,7 @@ function PackageForm({
       } else {
         await api.packages.create(payload);
       }
-      toast.success(initial ? "Package updated" : "Package created");
+      toast.success(initial ? t("package.packageUpdated") : t("package.packageCreated"));
       onSaved();
     } catch (err: any) {
       toast.error(err.message);
@@ -505,10 +509,10 @@ function PackageForm({
   return (
     <FormShell onSubmit={submit}>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Package code" hint="Auto if blank.">
+        <Field label={t("package.packageCode")} hint={t("package.autoIfBlank")}>
           <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="PKG-001" />
         </Field>
-        <Field label="Price">
+        <Field label={t("common.price")}>
           <MoneyInput
             amount={price}
             currency={currency}
@@ -517,16 +521,16 @@ function PackageForm({
           />
         </Field>
       </div>
-      <Field label="Payment status">
+      <Field label={t("package.paymentStatus")}>
         <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}>
-          <option value="paid">Paid</option>
-          <option value="on_delivery">Pay on delivery</option>
-          <option value="partly">Partly</option>
+          <option value="paid">{t("package.paid")}</option>
+          <option value="on_delivery">{t("package.onDelivery")}</option>
+          <option value="partly">{t("package.partly")}</option>
         </Select>
       </Field>
       {paymentStatus === "partly" && (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Amount paid">
+          <Field label={t("package.amountPaid")}>
             <Input
               type="number"
               step="0.01"
@@ -542,7 +546,7 @@ function PackageForm({
               required
             />
           </Field>
-          <Field label="Remaining on delivery">
+          <Field label={t("package.remainingOnDelivery")}>
             <Input
               type="number"
               step="0.01"
@@ -556,31 +560,31 @@ function PackageForm({
         </div>
       )}
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground pt-2">
-        Client information
+        {t("package.clientInfo")}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Full name">
+        <Field label={t("package.fullName")}>
           <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="John Doe" required />
         </Field>
-        <Field label="ID number">
+        <Field label={t("common.idNumber")}>
           <Input value={clientIdNumber} onChange={(e) => setClientIdNumber(e.target.value)} placeholder="A12345678" required />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Phone number">
+        <Field label={t("package.phoneNumber")}>
           <Input type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="+355 69 123 4567" required />
         </Field>
-        <Field label="Email" hint="Optional">
+        <Field label={t("common.email")} hint={t("package.emailOptional")}>
           <Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="client@example.com" />
         </Field>
       </div>
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground pt-2">
-        Product details
+        {t("package.productDetails")}
       </div>
-      <Field label="Product name">
+      <Field label={t("package.productName")}>
         <Input value={name} onChange={(e) => setName(e.target.value)} required />
       </Field>
-      <Field label="Destination location">
+      <Field label={t("package.destinationLocation")}>
         <Input
           value={dest ?? ""}
           onChange={(e) => setDest(e.target.value)}
@@ -588,14 +592,14 @@ function PackageForm({
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Delivery date">
+        <Field label={t("package.deliveryDate")}>
           <Input
             type="date"
             value={delivery ?? ""}
             onChange={(e) => setDelivery(e.target.value)}
           />
         </Field>
-        <Field label="Arrival date">
+        <Field label={t("package.arrivalDate")}>
           <Input
             type="date"
             value={arrival ?? ""}
@@ -603,9 +607,9 @@ function PackageForm({
           />
         </Field>
       </div>
-      <Field label="Related cargo" hint="Only pending cargos can be assigned.">
+      <Field label={t("package.relatedCargo")} hint={t("package.pendingOnly")}>
         <Select value={cargoId ?? ""} onChange={(e) => setCargoId(e.target.value)}>
-          <option value="">Unassigned</option>
+          <option value="">{t("common.unassigned")}</option>
           {cargos
             .filter((c) => c.status === "pending" || c.id === initial?.cargo_id)
             .map((c) => (
@@ -616,9 +620,9 @@ function PackageForm({
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Warehouse">
+        <Field label={t("package.warehouse")}>
           <Select value={warehouseId} onChange={(e) => onWarehouseChange(e.target.value)}>
-            <option value="">None</option>
+            <option value="">{t("common.none")}</option>
             {warehouses.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name}
@@ -627,15 +631,15 @@ function PackageForm({
           </Select>
         </Field>
         <Field
-          label="Section"
-          hint={!warehouseId ? "Select a warehouse first." : undefined}
+          label={t("package.section")}
+          hint={!warehouseId ? t("package.selectWarehouseFirst") : undefined}
         >
           <Select
             value={sectionId ?? ""}
             onChange={(e) => setSectionId(e.target.value)}
             disabled={!warehouseId}
           >
-            <option value="">None</option>
+            <option value="">{t("common.none")}</option>
             {availableSections.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -644,7 +648,7 @@ function PackageForm({
           </Select>
         </Field>
       </div>
-      <Field label="Product image">
+      <Field label={t("package.productImage")}>
         <div className="flex items-center gap-3">
           {imageUrl ? (
             <img
@@ -674,18 +678,18 @@ function PackageForm({
             disabled={uploading}
           >
             <Upload className="h-3.5 w-3.5" />
-            {uploading ? "Uploading…" : imageUrl ? "Replace" : "Upload"}
+            {uploading ? t("common.uploading") : imageUrl ? t("common.replace") : t("common.upload")}
           </Button>
           {imageUrl && (
             <Button type="button" variant="ghost" onClick={() => setImageUrl("")}>
-              Remove
+              {t("common.remove")}
             </Button>
           )}
         </div>
       </Field>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Saving…" : initial ? "Save changes" : "Create package"}
+          {busy ? t("common.saving") : initial ? t("common.saveChanges") : t("package.createPackage")}
         </Button>
       </div>
     </FormShell>

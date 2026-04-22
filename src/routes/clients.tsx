@@ -7,12 +7,13 @@ import { Modal, Field, Input, Button, FormShell, Select } from "@/components/ui-
 import { formatMoney, formatDate, shortId } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ChevronLeft, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/clients")({
   head: () => ({
     meta: [
-      { title: "Clients — trans.al" },
-      { name: "description", content: "Manage client information and view spending history." },
+      { title: "Klientet — trans.al" },
+      { name: "description", content: "Menaxhoni informacionin e klienteve dhe shikoni historikun e shpenzimeve." },
     ],
   }),
   component: ClientsPage,
@@ -53,6 +54,7 @@ function ClientsPage() {
   const [editing, setEditing] = useState<Client | null>(null);
   const [query, setQuery] = useState("");
   const [viewing, setViewing] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -95,10 +97,10 @@ function ClientsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this client?")) return;
+    if (!confirm(t("clients.deleteConfirm"))) return;
     try {
       await api.clients.delete(id);
-      toast.success("Client deleted");
+      toast.success(t("clients.clientDeleted"));
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -120,11 +122,11 @@ function ClientsPage() {
   return (
     <>
       <PageHeader
-        title="Clients"
-        description="Client directory and spending history."
+        title={t("clients.title")}
+        description={t("clients.description")}
         actions={
           <Button onClick={startCreate}>
-            <Plus className="h-4 w-4" /> New client
+            <Plus className="h-4 w-4" /> {t("clients.newClient")}
           </Button>
         }
       />
@@ -133,7 +135,7 @@ function ClientsPage() {
           <div className="relative max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search name, email, phone, ID…"
+              placeholder={t("clients.searchPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-8"
@@ -143,15 +145,15 @@ function ClientsPage() {
 
         {busy ? (
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            title="No clients yet"
-            description="Add your first client to start tracking their packages and spending."
+            title={t("clients.noClientsYet")}
+            description={t("clients.noClientsDescription")}
             action={
               <Button onClick={startCreate}>
-                <Plus className="h-4 w-4" /> New client
+                <Plus className="h-4 w-4" /> {t("clients.newClient")}
               </Button>
             }
           />
@@ -160,12 +162,12 @@ function ClientsPage() {
             <table className="w-full min-w-[700px]">
               <thead className="bg-secondary/50">
                 <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Name</th>
-                  <th className="px-4 py-2.5 font-medium">Phone</th>
-                  <th className="px-4 py-2.5 font-medium">Email</th>
-                  <th className="px-4 py-2.5 font-medium">ID Number</th>
-                  <th className="px-4 py-2.5 font-medium">Packages</th>
-                  <th className="px-4 py-2.5 font-medium">Total Spent</th>
+                  <th className="px-4 py-2.5 font-medium">{t("common.name")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("common.phone")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("common.email")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("common.idNumber")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("overview.packages")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("clients.totalSpent")}</th>
                   <th className="px-4 py-2.5"></th>
                 </tr>
               </thead>
@@ -205,7 +207,7 @@ function ClientsPage() {
         )}
       </PageBody>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Edit client" : "New client"}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t("clients.editClient") : t("clients.newClientTitle")}>
         <ClientForm
           initial={editing}
           onSaved={() => {
@@ -227,7 +229,7 @@ function SpendingSummary({ eur, usd, all }: { eur: number; usd: number; all: num
   return <span className="font-mono text-xs">{parts.join(" · ")}</span>;
 }
 
-/* ─── Client form ─── */
+/* --- Client form --- */
 
 function ClientForm({
   initial,
@@ -243,10 +245,11 @@ function ClientForm({
   const [address, setAddress] = useState(initial?.address ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return toast.error("Name is required.");
+    if (!name.trim()) return toast.error(t("common.name") + " " + t("common.loading"));
     setBusy(true);
     const payload = {
       name: name.trim(),
@@ -262,7 +265,7 @@ function ClientForm({
       } else {
         await api.clients.create(payload);
       }
-      toast.success(initial ? "Client updated" : "Client created");
+      toast.success(initial ? t("clients.clientUpdated") : t("clients.clientCreated"));
       onSaved();
     } catch (err: any) {
       toast.error(err.message);
@@ -272,42 +275,43 @@ function ClientForm({
 
   return (
     <FormShell onSubmit={submit}>
-      <Field label="Full name *">
+      <Field label={t("clients.fullName")}>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Phone">
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+355 69…" />
+        <Field label={t("common.phone")}>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+355 69..." />
         </Field>
-        <Field label="Email">
+        <Field label={t("common.email")}>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" />
         </Field>
       </div>
-      <Field label="ID number" hint="Unique identifier used to match packages to this client.">
+      <Field label={t("common.idNumber")} hint={t("clients.idNumberHint")}>
         <Input value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="A12345678" />
       </Field>
-      <Field label="Address">
-        <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City, Country" />
+      <Field label={t("common.address")}>
+        <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rruga, Qyteti, Vendi" />
       </Field>
-      <Field label="Notes">
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional info…" />
+      <Field label={t("common.notes")}>
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Informacion shtese..." />
       </Field>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Saving…" : initial ? "Save changes" : "Create client"}
+          {busy ? t("common.saving") : initial ? t("common.saveChanges") : t("clients.createClient")}
         </Button>
       </div>
     </FormShell>
   );
 }
 
-/* ─── Client detail view ─── */
+/* --- Client detail view --- */
 
 function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => void }) {
   const [client, setClient] = useState<any>(null);
   const [packages, setPackages] = useState<ClientPackage[]>([]);
   const [busy, setBusy] = useState(true);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     (async () => {
@@ -327,10 +331,10 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
   if (busy || !client) {
     return (
       <>
-        <PageHeader title="Client" />
+        <PageHeader title={t("clients.title")} />
         <PageBody>
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         </PageBody>
       </>
@@ -353,32 +357,32 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
     <>
       <PageHeader
         title={client.name}
-        description="Client details and package history"
+        description={t("clients.detailDescription")}
         actions={
           <Button variant="ghost" onClick={onBack}>
-            <ChevronLeft className="h-4 w-4" /> Back to clients
+            <ChevronLeft className="h-4 w-4" /> {t("clients.backToClients")}
           </Button>
         }
       />
       <PageBody>
         {/* Info cards */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <InfoCard label="Phone" value={client.phone || "—"} />
-          <InfoCard label="Email" value={client.email || "—"} />
-          <InfoCard label="ID Number" value={client.id_number || "—"} mono />
-          <InfoCard label="Address" value={client.address || "—"} />
+          <InfoCard label={t("common.phone")} value={client.phone || "—"} />
+          <InfoCard label={t("common.email")} value={client.email || "—"} />
+          <InfoCard label={t("common.idNumber")} value={client.id_number || "—"} mono />
+          <InfoCard label={t("common.address")} value={client.address || "—"} />
         </div>
 
         {client.notes && (
           <div className="mt-3 rounded-lg border border-border bg-card p-4">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Notes</div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{t("common.notes")}</div>
             <div className="mt-1 text-sm">{client.notes}</div>
           </div>
         )}
 
         {/* Spending summary */}
         <div className="mt-3 rounded-lg border border-border bg-card p-5">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total Spending</div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{t("clients.totalSpending")}</div>
           <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2">
             {Object.keys(totals).length === 0 ? (
               <span className="font-mono text-2xl text-muted-foreground">—</span>
@@ -396,30 +400,30 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
             )}
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
-            {packages.length} package{packages.length !== 1 ? "s" : ""} total
+            {t("clients.packagesTotal", { count: packages.length })}
           </div>
         </div>
 
         {/* Package history table */}
         <div className="mt-3">
           <div className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Package History
+            {t("clients.packageHistory")}
           </div>
           {packages.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-card/40 p-8 text-center text-sm text-muted-foreground">
-              No packages found for this client.
+              {t("clients.noPackagesFound")}
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border bg-card">
               <table className="w-full min-w-[600px]">
                 <thead className="bg-secondary/50">
                   <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2.5 font-medium">Package</th>
-                    <th className="px-4 py-2.5 font-medium">Product</th>
-                    <th className="px-4 py-2.5 font-medium">Cargo</th>
-                    <th className="px-4 py-2.5 font-medium">Price</th>
-                    <th className="px-4 py-2.5 font-medium">Payment</th>
-                    <th className="px-4 py-2.5 font-medium">Date</th>
+                    <th className="px-4 py-2.5 font-medium">{t("cargoDetail.package")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("cargoDetail.product")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("package.cargo")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.price")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("package.payment")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.date")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-sm">
@@ -436,7 +440,7 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
                             (paymentColor[p.payment_status] ?? "bg-muted text-muted-foreground border-border")
                           }
                         >
-                          {{ paid: "Paid", on_delivery: "On delivery", partly: "Partly" }[p.payment_status] ?? p.payment_status}
+                          {{ paid: t("clients.paid"), on_delivery: t("clients.onDelivery"), partly: t("clients.partly") }[p.payment_status] ?? p.payment_status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{formatDate(p.created_at)}</td>

@@ -16,7 +16,7 @@ export function formatMoney(
 ) {
   const v = Number(amount ?? 0);
   const info = currencyInfo(currency);
-  const formatted = new Intl.NumberFormat("en-US", {
+  const formatted = new Intl.NumberFormat("sq-AL", {
     maximumFractionDigits: info.code === "ALL" ? 0 : 2,
     minimumFractionDigits: 0,
   }).format(v);
@@ -33,7 +33,7 @@ export function formatCurrency(n: number | null | undefined) {
 export function formatDate(d: string | null | undefined) {
   if (!d) return "—";
   try {
-    return new Date(d).toLocaleDateString("en-GB", {
+    return new Date(d).toLocaleDateString("sq-AL", {
       day: "2-digit",
       month: "short",
       year: "numeric",

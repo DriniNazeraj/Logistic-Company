@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export function PageHeader({
   title,
@@ -27,13 +28,14 @@ export function PageBody({ children }: { children: ReactNode }) {
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
     pending: "bg-warning/15 text-warning border-warning/30",
     in_transit: "bg-accent/15 text-accent border-accent/30",
     delivered: "bg-success/15 text-success border-success/30",
   };
   const label =
-    { pending: "Pending", in_transit: "In transit", delivered: "Delivered" }[status] ??
+    { pending: t("status.pending"), in_transit: t("status.inTransit"), delivered: t("status.delivered") }[status] ??
     status;
   return (
     <span

@@ -5,10 +5,11 @@ import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, StatusBadge } from "@/components/layout-primitives";
 import { formatMoney, formatDate, shortId } from "@/lib/format";
 import { ArrowLeft, Package as PackageIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/cargo/$id")({
   head: () => ({
-    meta: [{ title: "Cargo detail — trans.al" }],
+    meta: [{ title: "Detajet e ngarkeses — trans.al" }],
   }),
   component: CargoDetail,
 });
@@ -52,6 +53,7 @@ function CargoDetail() {
   const [packages, setPackages] = useState<Pkg[]>([]);
   const [sections, setSections] = useState<SectionInfo[]>([]);
   const [busy, setBusy] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -91,7 +93,7 @@ function CargoDetail() {
   return (
     <>
       <PageHeader
-        title={cargo ? `Cargo ${cargo.cargo_code || shortId(cargo.id)}` : "Cargo"}
+        title={cargo ? `${t("cargo.title")} ${cargo.cargo_code || shortId(cargo.id)}` : t("cargo.title")}
         description={
           cargo ? `${cargo.departure_country} → ${cargo.destination_country}` : undefined
         }
@@ -100,28 +102,28 @@ function CargoDetail() {
             to="/cargo"
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-sm hover:bg-muted"
           >
-            <ArrowLeft className="h-4 w-4" /> All cargos
+            <ArrowLeft className="h-4 w-4" /> {t("cargoDetail.allCargos")}
           </Link>
         }
       />
       <PageBody>
         {busy || !cargo ? (
           <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            Loading…
+            {t("common.loading")}
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-              <DetailCard label="Status">
+              <DetailCard label={t("common.status")}>
                 <StatusBadge status={cargo.status} />
               </DetailCard>
-              <DetailCard label="Departure date">
+              <DetailCard label={t("cargoDetail.departureDate")}>
                 <div className="font-mono text-sm">{formatDate(cargo.departure_date)}</div>
               </DetailCard>
-              <DetailCard label="Arrival date">
+              <DetailCard label={t("cargoDetail.arrivalDate")}>
                 <div className="font-mono text-sm">{formatDate(cargo.arrival_date)}</div>
               </DetailCard>
-              <DetailCard label="Totals by currency">
+              <DetailCard label={t("cargoDetail.totalsByCurrency")}>
                 <div className="font-mono text-sm">
                   {Object.keys(totals).length === 0
                     ? "—"
@@ -134,9 +136,9 @@ function CargoDetail() {
 
             <div className="mt-6">
               <div className="mb-3 flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold">Packages in this cargo</h2>
+                <h2 className="text-sm font-semibold">{t("cargoDetail.packagesInCargo")}</h2>
                 <div className="text-xs text-muted-foreground">
-                  {packages.length} package{packages.length === 1 ? "" : "s"}
+                  {packages.length} {packages.length === 1 ? t("cargoDetail.package") : t("cargo.packages").toLowerCase()}
                 </div>
               </div>
 
@@ -144,9 +146,9 @@ function CargoDetail() {
                 <div className="rounded-lg border border-dashed border-border bg-card/40 p-12 text-center">
                   <PackageIcon className="mx-auto h-8 w-8 text-muted-foreground/40" />
                   <p className="mt-3 text-sm text-muted-foreground">
-                    No packages assigned yet. Create one from the{" "}
+                    {t("cargoDetail.noPackages")}{" "}
                     <Link to="/package" className="text-foreground underline-offset-4 hover:underline">
-                      Packages page
+                      {t("cargoDetail.packagesPage")}
                     </Link>
                     .
                   </p>
@@ -156,13 +158,13 @@ function CargoDetail() {
                   <table className="w-full">
                     <thead className="bg-secondary/50">
                       <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                        <th className="px-4 py-2.5 font-medium">Package</th>
-                        <th className="px-4 py-2.5 font-medium">Product</th>
-                        <th className="px-4 py-2.5 font-medium">Price</th>
-                        <th className="px-4 py-2.5 font-medium">Destination</th>
-                        <th className="px-4 py-2.5 font-medium">Warehouse / Section</th>
-                        <th className="px-4 py-2.5 font-medium">Delivery</th>
-                        <th className="px-4 py-2.5 font-medium">Arrival</th>
+                        <th className="px-4 py-2.5 font-medium">{t("cargoDetail.package")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("cargoDetail.product")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("common.price")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("cargoDetail.destination")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("cargoDetail.warehouseSection")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("cargoDetail.delivery")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("cargo.arrival")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-sm">
