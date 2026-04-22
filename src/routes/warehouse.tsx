@@ -89,7 +89,7 @@ function WarehousePage() {
     // Auto-create one if none exists
     if (list.length === 0) {
       try {
-        const created = await api.warehouses.create({ name: "Magazine Kryesore", location: null, canvas_width: 1000, canvas_height: 600 });
+        const created = await api.warehouses.create({ name: "Magazine Kryesore", canvas_width: 1000, canvas_height: 600 });
         list.push(created as Warehouse);
       } catch (err: any) {
         toast.error(err.message);
