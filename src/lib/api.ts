@@ -81,6 +81,7 @@ export const api = {
     getFirst: () => request<any | null>("/warehouses/first"),
     create: (data: any) => request<any>("/warehouses", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/warehouses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: string) => request<void>(`/warehouses/${id}`, { method: "DELETE" }),
   },
 
   sections: {

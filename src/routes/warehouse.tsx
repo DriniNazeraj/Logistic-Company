@@ -582,10 +582,15 @@ function WarehousePage() {
       >
         <WarehouseSettingsForm
           warehouse={warehouse}
+          canDelete={allWarehouses.length > 1}
           onSaved={(updated) => {
             setWarehouse(updated);
             setAllWarehouses((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
             setSettingsOpen(false);
+          }}
+          onDeleted={() => {
+            setSettingsOpen(false);
+            load();
           }}
         />
       </Modal>
@@ -650,9 +655,13 @@ function NewWarehouseForm({ onCreated }: { onCreated: (w: Warehouse) => void }) 
 function WarehouseSettingsForm({
   warehouse,
   onSaved,
+  onDeleted,
+  canDelete,
 }: {
   warehouse: Warehouse;
   onSaved: (w: Warehouse) => void;
+  onDeleted: () => void;
+  canDelete: boolean;
 }) {
   const [name, setName] = useState(warehouse.name);
   const [location, setLocation] = useState(warehouse.location ?? "");
@@ -695,7 +704,27 @@ function WarehouseSettingsForm({
           <Input type="number" value={h} onChange={(e) => setH(Number(e.target.value))} min={300} />
         </Field>
       </div>
-      <div className="flex justify-end pt-2">
+      <div className="flex items-center justify-between pt-2">
+        {canDelete ? (
+          <Button
+            type="button"
+            variant="danger"
+            onClick={async () => {
+              if (!confirm(`Delete "${warehouse.name}"? All sections inside will be removed.`)) return;
+              try {
+                await api.warehouses.delete(warehouse.id);
+                toast.success("Warehouse deleted");
+                onDeleted();
+              } catch (err: any) {
+                toast.error(err.message);
+              }
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
+        ) : (
+          <div />
+        )}
         <Button type="submit" disabled={busy}>
           {busy ? t("common.saving") : t("common.saveChanges")}
         </Button>
