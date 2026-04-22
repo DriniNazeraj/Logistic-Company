@@ -69,7 +69,9 @@
     "backLink": "← Back",
     "welcomeBack": "Welcome back",
     "accountCreated": "Account created. You're signed in.",
-    "authFailed": "Authentication failed"
+    "authFailed": "Authentication failed",
+    "passwordRequirements": "Password must be at least 8 characters with a number and special character",
+    "invalidEmail": "Please enter a valid email address"
   },
   "overview": {
     "title": "Overview",
@@ -198,7 +200,9 @@
     "packageDeleted": "Package deleted",
     "packageUpdated": "Package updated",
     "packageCreated": "Package created",
-    "deleteConfirm": "Delete this package?"
+    "deleteConfirm": "Delete this package?",
+    "productNameRequired": "Product name is required",
+    "clientNameRequired": "Client name is required"
   },
   "clients": {
     "title": "Clients",
@@ -212,6 +216,7 @@
     "newClientTitle": "New client",
     "fullName": "Full name *",
     "idNumberHint": "Unique identifier used to match packages to this client.",
+    "nameRequired": "Client name is required",
     "createClient": "Create client",
     "clientDeleted": "Client deleted",
     "clientUpdated": "Client updated",
@@ -324,7 +329,9 @@
     "warehouseUpdated": "Warehouse updated",
     "sectionDeleted": "Section deleted",
     "deleteSectionConfirm": "Delete this section?",
-    "removeFromSection": "Remove from section"
+    "removeFromSection": "Remove from section",
+    "deleteWarehouseConfirm": "Delete \"{{name}}\"? All sections inside will be removed.",
+    "warehouseDeleted": "Warehouse deleted"
   },
   "status": {
     "pending": "Pending",

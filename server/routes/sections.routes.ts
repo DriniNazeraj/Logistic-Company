@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
+import { createSectionSchema, updateSectionSchema, validate } from "../validation.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -19,7 +20,8 @@ router.get("/", async (req, res) => {
       res.json(rows);
     }
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[sections]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -45,25 +47,27 @@ router.get("/with-warehouse", async (req, res) => {
     }));
     res.json(result);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[sections]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createSectionSchema), async (req, res) => {
   try {
     const { warehouse_id, name, color, x, y, width, height } = req.body;
     const { rows } = await query(
       `INSERT INTO sections (warehouse_id, name, color, x, y, width, height)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [warehouse_id, name, color ?? "#3b82f6", x ?? 0, y ?? 0, width ?? 100, height ?? 100],
+      [warehouse_id, name, color, x, y, width, height],
     );
     res.json(rows[0]);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[sections]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", validate(updateSectionSchema), async (req, res) => {
   try {
     const { name, color, x, y, width, height } = req.body;
     const { rows } = await query(
@@ -73,7 +77,8 @@ router.put("/:id", async (req, res) => {
     );
     res.json(rows[0] ?? null);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[sections]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -82,7 +87,8 @@ router.delete("/:id", async (req, res) => {
     await query("DELETE FROM sections WHERE id = $1", [req.params.id]);
     res.json({ ok: true });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[sections]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

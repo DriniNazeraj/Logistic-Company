@@ -3,7 +3,11 @@ import bcrypt from "bcryptjs";
 import { query } from "./db.js";
 import type { Request, Response, NextFunction } from "express";
 
-const SECRET = process.env.JWT_SECRET || "change-me-in-production";
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET environment variable is required. Set it in your .env file.");
+  process.exit(1);
+}
+const SECRET = process.env.JWT_SECRET;
 
 export interface AuthUser {
   id: string;

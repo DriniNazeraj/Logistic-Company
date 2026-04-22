@@ -1,18 +1,25 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
+import { createCargoSchema, updateCargoSchema, validate } from "../validation.js";
 
 const router = Router();
 router.use(authMiddleware);
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { rows } = await query(
-      "SELECT * FROM cargos ORDER BY created_at DESC",
-    );
-    res.json(rows);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const offset = (page - 1) * limit;
+
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      query("SELECT * FROM cargos ORDER BY created_at DESC LIMIT $1 OFFSET $2", [limit, offset]),
+      query("SELECT COUNT(*)::int AS total FROM cargos"),
+    ]);
+    res.json({ data: rows, total: countRows[0].total, page, limit });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -29,7 +36,8 @@ router.get("/stats", async (_req, res) => {
       warehouses: warehouses.rows[0].count,
     });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -53,7 +61,8 @@ router.post("/auto-transit", async (_req, res) => {
     }
     res.json({ transitioned: ids.length });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -62,25 +71,27 @@ router.get("/:id", async (req, res) => {
     const { rows } = await query("SELECT * FROM cargos WHERE id = $1", [req.params.id]);
     res.json(rows[0] ?? null);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createCargoSchema), async (req, res) => {
   try {
     const { cargo_code, departure_country, destination_country, departure_date, arrival_date, status, currency } = req.body;
     const { rows } = await query(
       `INSERT INTO cargos (cargo_code, departure_country, destination_country, departure_date, arrival_date, status, currency)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [cargo_code, departure_country, destination_country, departure_date, arrival_date, status || "pending", currency || "EUR"],
+      [cargo_code, departure_country, destination_country, departure_date, arrival_date, status, currency],
     );
     res.json(rows[0]);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", validate(updateCargoSchema), async (req, res) => {
   try {
     const { cargo_code, departure_country, destination_country, departure_date, arrival_date, status, currency } = req.body;
     const { rows } = await query(
@@ -91,7 +102,8 @@ router.put("/:id", async (req, res) => {
     );
     res.json(rows[0] ?? null);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -100,7 +112,8 @@ router.delete("/:id", async (req, res) => {
     await query("DELETE FROM cargos WHERE id = $1", [req.params.id]);
     res.json({ ok: true });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[cargos]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

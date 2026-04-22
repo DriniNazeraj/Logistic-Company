@@ -25,8 +25,25 @@ function LoginPage() {
     if (user) navigate({ to: "/" });
   }, [user, navigate]);
 
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const validateForm = (): boolean => {
+    const errs: typeof errors = {};
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errs.email = t("login.invalidEmail");
+    }
+    if (mode === "signup") {
+      if (password.length < 8 || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+        errs.password = t("login.passwordRequirements");
+      }
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setBusy(true);
     try {
       if (mode === "signin") {
@@ -87,22 +104,24 @@ function LoginPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-md border border-input bg-input px-3 py-2 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2"
+                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+                className={`w-full rounded-md border bg-input px-3 py-2 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2 ${errors.email ? "border-destructive" : "border-input"}`}
                 placeholder="manager@trans.al"
               />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">{t("login.passwordLabel")}</label>
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-input bg-input px-3 py-2 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2"
+                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+                className={`w-full rounded-md border bg-input px-3 py-2 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2 ${errors.password ? "border-destructive" : "border-input"}`}
                 placeholder="••••••••"
               />
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
             <button
               type="submit"

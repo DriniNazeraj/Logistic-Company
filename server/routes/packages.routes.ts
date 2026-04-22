@@ -1,6 +1,8 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
+import { createPackageSchema, updatePackageSchema, validate } from "../validation.js";
 
 const router = Router();
 
@@ -76,8 +78,11 @@ async function addSpendingToClient(pkg: any) {
   );
 }
 
+// Rate limit public endpoints
+const publicLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false });
+
 // Public tracking endpoint (no auth) — looks up by track_token (secure) or package_code (legacy)
-router.get("/track/:token", async (req, res) => {
+router.get("/track/:token", publicLimiter, async (req, res) => {
   try {
     // Try track_token first (48-char hex), fall back to package_code for backwards compat
     const token = req.params.token;
@@ -100,13 +105,14 @@ router.get("/track/:token", async (req, res) => {
     }
     res.json({ package: pkg, cargo });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages track]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // Public confirm delivery endpoint (no auth)
 // Client scans QR on the physical box; the scanned token must match the package's track_token.
-router.post("/confirm/:token", async (req, res) => {
+router.post("/confirm/:token", publicLimiter, async (req, res) => {
   try {
     const { scanned_code } = req.body;
     if (!scanned_code) {
@@ -145,22 +151,44 @@ router.post("/confirm/:token", async (req, res) => {
     await query("DELETE FROM packages WHERE id = $1", [pkg.id]);
     res.json({ confirmed: true, confirmed_at: new Date().toISOString() });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages confirm]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 router.use(authMiddleware);
 
+const ALLOWED_PACKAGE_FIELDS = new Set([
+  "id", "package_code", "product_name", "price", "currency", "payment_status",
+  "amount_paid", "amount_remaining", "client_name", "client_phone", "client_email",
+  "client_id_number", "destination_location", "delivery_date", "arrival_date",
+  "image_url", "cargo_id", "section_id", "track_token", "confirmed_at", "created_at", "updated_at",
+]);
+
 router.get("/", async (req, res) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const offset = (page - 1) * limit;
+
     const fields = req.query.fields as string | undefined;
-    const sql = fields
-      ? `SELECT ${fields.split(",").map((f) => f.trim()).join(", ")} FROM packages ORDER BY created_at DESC`
-      : "SELECT * FROM packages ORDER BY created_at DESC";
-    const { rows } = await query(sql);
-    res.json(rows);
+    let selectClause = "*";
+    if (fields) {
+      const requested = fields.split(",").map((f) => f.trim()).filter((f) => ALLOWED_PACKAGE_FIELDS.has(f));
+      if (requested.length === 0) {
+        res.status(400).json({ message: "No valid fields specified" });
+        return;
+      }
+      selectClause = requested.join(", ");
+    }
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      query(`SELECT ${selectClause} FROM packages ORDER BY created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      query("SELECT COUNT(*)::int AS total FROM packages"),
+    ]);
+    res.json({ data: rows, total: countRows[0].total, page, limit });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages GET /]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -172,11 +200,12 @@ router.get("/by-cargo/:cargoId", async (req, res) => {
     );
     res.json(rows);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", validate(createPackageSchema), async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await query(
@@ -197,11 +226,12 @@ router.post("/", async (req, res) => {
     await addSpendingToClient(rows[0]).catch(() => {});
     res.json(rows[0]);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", validate(updatePackageSchema), async (req, res) => {
   try {
     const b = req.body;
     // Build dynamic SET clause from provided fields
@@ -234,7 +264,8 @@ router.put("/:id", async (req, res) => {
     if (b.client_name) await upsertClientFromPackage(b).catch(() => {});
     res.json(rows[0] ?? null);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -243,7 +274,8 @@ router.delete("/:id", async (req, res) => {
     await query("DELETE FROM packages WHERE id = $1", [req.params.id]);
     res.json({ ok: true });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[packages]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
