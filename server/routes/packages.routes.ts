@@ -1,5 +1,4 @@
 import { Router } from "express";
-import rateLimit from "express-rate-limit";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
 import { createPackageSchema, updatePackageSchema, validate } from "../validation.js";
@@ -78,11 +77,8 @@ async function addSpendingToClient(pkg: any) {
   );
 }
 
-// Rate limit public endpoints
-const publicLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false });
-
 // Public tracking endpoint (no auth) — looks up by track_token (secure) or package_code (legacy)
-router.get("/track/:token", publicLimiter, async (req, res) => {
+router.get("/track/:token", async (req, res) => {
   try {
     // Try track_token first (48-char hex), fall back to package_code for backwards compat
     const token = req.params.token;
@@ -112,7 +108,7 @@ router.get("/track/:token", publicLimiter, async (req, res) => {
 
 // Public confirm delivery endpoint (no auth)
 // Client scans QR on the physical box; the scanned token must match the package's track_token.
-router.post("/confirm/:token", publicLimiter, async (req, res) => {
+router.post("/confirm/:token", async (req, res) => {
   try {
     const { scanned_code } = req.body;
     if (!scanned_code) {

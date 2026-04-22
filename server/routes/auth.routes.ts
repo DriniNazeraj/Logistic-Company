@@ -1,13 +1,8 @@
 import { Router } from "express";
-import rateLimit from "express-rate-limit";
 import { findUserByEmail, createUser, comparePassword, signToken, authMiddleware, type AuthRequest } from "../auth.js";
 import { loginSchema, registerSchema, validate } from "../validation.js";
 
 const router = Router();
-
-// Strict rate limits on auth endpoints
-const authLimiter = rateLimit({ windowMs: 15 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false });
-router.use(authLimiter);
 
 router.post("/login", validate(loginSchema), async (req, res) => {
   try {

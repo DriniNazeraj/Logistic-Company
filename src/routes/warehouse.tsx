@@ -623,7 +623,7 @@ function NewWarehouseForm({ onCreated }: { onCreated: (w: Warehouse) => void }) 
     try {
       const created = await api.warehouses.create({
         name: name.trim() || "Magazine e Re",
-        location: location.trim() || null,
+        location: location.trim() || undefined,
         canvas_width: 1000,
         canvas_height: 600,
       });
@@ -673,7 +673,7 @@ function WarehouseSettingsForm({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const payload = { name, location: location || null, canvas_width: w, canvas_height: h };
+    const payload = { name, location: location || undefined, canvas_width: w, canvas_height: h };
     try {
       await api.warehouses.update(warehouse.id, payload);
       toast.success(t("warehouse.warehouseUpdated"));

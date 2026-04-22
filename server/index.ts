@@ -3,7 +3,7 @@ import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import rateLimit from "express-rate-limit";
+
 import path from "path";
 import { isDatabaseAvailable, shutdown as dbShutdown } from "./db.js";
 
@@ -19,17 +19,11 @@ import clientsRoutes from "./routes/clients.routes.js";
 const app = express();
 const PORT = parseInt(process.env.PORT || "3001", 10);
 
-// Trust proxy (nginx) so rate limiter sees real client IPs
-app.set("trust proxy", 1);
-
 // Security headers
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
 // Request logging
 app.use(morgan("short"));
-
-// Global rate limit: 200 requests per minute per IP
-app.use(rateLimit({ windowMs: 60_000, max: 200, standardHeaders: true, legacyHeaders: false }));
 
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
