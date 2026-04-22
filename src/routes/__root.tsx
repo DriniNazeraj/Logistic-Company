@@ -185,9 +185,9 @@ function AppShell() {
         </div>
       )}
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         {/* Top bar with hamburger + theme toggle */}
-        <div className="flex items-center justify-between px-4 pt-3 md:justify-end">
+        <div className="flex items-center justify-between px-4 pt-3 sm:px-6 md:justify-end">
           <button
             onClick={() => setMobileOpen(true)}
             className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
