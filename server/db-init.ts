@@ -114,15 +114,20 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_packages INTEGER NOT NULL DEF
 `;
 
 async function seedAdmin() {
-  const email = "manager@gmail.com";
+  const email = process.env.ADMIN_EMAIL || "manager@gmail.com";
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    console.log("ADMIN_PASSWORD not set, skipping admin seed.");
+    return;
+  }
   const { rows } = await query("SELECT id FROM users WHERE email = $1", [email]);
   if (rows.length > 0) {
     console.log("Admin user already exists, skipping seed.");
     return;
   }
-  const hash = await bcrypt.hash("Square@2026", 10);
+  const hash = await bcrypt.hash(password, 10);
   await query("INSERT INTO users (email, password_hash) VALUES ($1, $2)", [email, hash]);
-  console.log("Admin user created: manager@gmail.com");
+  console.log(`Admin user created: ${email}`);
 }
 
 async function init() {

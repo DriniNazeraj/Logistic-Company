@@ -23,6 +23,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trans_al}
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-secret-string}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-manager@gmail.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       PORT: 3001
       BASE_URL: ${BASE_URL:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}

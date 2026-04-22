@@ -12,7 +12,7 @@
 ```bash
 git clone https://github.com/DriniNazeraj/Logistic-Company.git
 cd Logistic-Company
-git checkout feature/auth-validation-skeleton
+git checkout main
 ```
 
 ### 2. Create the environment file
@@ -24,9 +24,12 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<strong-password-here>
 POSTGRES_DB=trans_al
 JWT_SECRET=<random-secret-string-here>
+ADMIN_EMAIL=manager@gmail.com
+ADMIN_PASSWORD=<admin-password-here>
 ```
 
-> Replace `<strong-password-here>` and `<random-secret-string-here>` with secure values.
+> Replace `<strong-password-here>`, `<random-secret-string-here>`, and `<admin-password-here>` with secure values.
+> The admin user is created automatically on first boot.
 
 ### 3. Start the application
 

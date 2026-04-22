@@ -31,11 +31,6 @@ function LoginPage() {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errs.email = t("login.invalidEmail");
     }
-    if (mode === "signup") {
-      if (password.length < 8 || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
-        errs.password = t("login.passwordRequirements");
-      }
-    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
