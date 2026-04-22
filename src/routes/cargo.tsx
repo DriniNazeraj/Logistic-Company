@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
 import { useTranslation } from "react-i18next";
+import { SkeletonTable } from "@/components/skeleton";
 
 export const Route = createFileRoute("/cargo")({
   head: () => ({
@@ -148,9 +149,7 @@ function CargosPage() {
         </div>
 
         {busy ? (
-          <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            {t("common.loading")}
-          </div>
+          <SkeletonTable rows={5} cols={8} />
         ) : filtered.length === 0 ? (
           <EmptyState
             title={t("cargo.noCargosYet")}

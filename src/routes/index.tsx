@@ -11,6 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { SkeletonStatsCard, SkeletonChart } from "@/components/skeleton";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -102,6 +103,25 @@ function Index() {
   }, [user]);
 
   if (!user) return null;
+
+  if (!stats) {
+    return (
+      <>
+        <PageHeader title={t("overview.title")} description={t("overview.description")} />
+        <PageBody>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonStatsCard key={i} />
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+        </PageBody>
+      </>
+    );
+  }
 
   const cards = [
     { label: t("overview.totalCargos"), value: stats?.cargos ?? "—", to: "/cargo", icon: Truck },

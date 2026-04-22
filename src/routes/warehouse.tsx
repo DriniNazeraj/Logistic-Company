@@ -710,17 +710,17 @@ function WarehouseSettingsForm({
             type="button"
             variant="danger"
             onClick={async () => {
-              if (!confirm(`Delete "${warehouse.name}"? All sections inside will be removed.`)) return;
+              if (!confirm(t("warehouse.deleteWarehouseConfirm", { name: warehouse.name }))) return;
               try {
                 await api.warehouses.delete(warehouse.id);
-                toast.success("Warehouse deleted");
+                toast.success(t("warehouse.warehouseDeleted"));
                 onDeleted();
               } catch (err: any) {
                 toast.error(err.message);
               }
             }}
           >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
+            <Trash2 className="h-3.5 w-3.5" /> {t("common.delete")}
           </Button>
         ) : (
           <div />

@@ -8,6 +8,7 @@ import { formatMoney, formatDate, shortId } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ChevronLeft, Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { SkeletonTable } from "@/components/skeleton";
 
 export const Route = createFileRoute("/clients")({
   head: () => ({
@@ -144,9 +145,7 @@ function ClientsPage() {
         </div>
 
         {busy ? (
-          <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            {t("common.loading")}
-          </div>
+          <SkeletonTable rows={5} cols={7} />
         ) : filtered.length === 0 ? (
           <EmptyState
             title={t("clients.noClientsYet")}
@@ -249,7 +248,7 @@ function ClientForm({
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return toast.error(t("common.name") + " " + t("common.loading"));
+    if (!name.trim()) return toast.error(t("clients.nameRequired"));
     setBusy(true);
     const payload = {
       name: name.trim(),

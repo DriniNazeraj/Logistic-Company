@@ -69,7 +69,9 @@
     "backLink": "\u2190 Kthehu",
     "welcomeBack": "Mire se u kthyet",
     "accountCreated": "Llogaria u krijua. Jeni identifikuar.",
-    "authFailed": "Identifikimi deshtoi"
+    "authFailed": "Identifikimi deshtoi",
+    "passwordRequirements": "Fjalekalimi duhet te kete te pakten 8 karaktere me nje numer dhe karakter special",
+    "invalidEmail": "Ju lutem vendosni nje adrese email te vlefshme"
   },
   "overview": {
     "title": "Paneli",
@@ -198,7 +200,9 @@
     "packageDeleted": "Paketa u fshi",
     "packageUpdated": "Paketa u perditesua",
     "packageCreated": "Paketa u krijua",
-    "deleteConfirm": "Fshij kete pakete?"
+    "deleteConfirm": "Fshij kete pakete?",
+    "productNameRequired": "Emri i produktit eshte i detyrueshem",
+    "clientNameRequired": "Emri i klientit eshte i detyrueshem"
   },
   "clients": {
     "title": "Klientet",
@@ -212,6 +216,7 @@
     "newClientTitle": "Klient i ri",
     "fullName": "Emri i plote *",
     "idNumberHint": "Identifikues unik i perdorur per te lidhur paketat me kete klient.",
+    "nameRequired": "Emri i klientit eshte i detyrueshem",
     "createClient": "Krijo klientin",
     "clientDeleted": "Klienti u fshi",
     "clientUpdated": "Klienti u perditesua",
@@ -324,7 +329,9 @@
     "warehouseUpdated": "Magazina u perditesua",
     "sectionDeleted": "Seksioni u fshi",
     "deleteSectionConfirm": "Fshij kete seksion?",
-    "removeFromSection": "Hiq nga seksioni"
+    "removeFromSection": "Hiq nga seksioni",
+    "deleteWarehouseConfirm": "Fshij \"{{name}}\"? Te gjitha seksionet brenda do te hiqen.",
+    "warehouseDeleted": "Magazina u fshi"
   },
   "status": {
     "pending": "Ne pritje",

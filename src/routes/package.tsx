@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download, Link2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslation } from "react-i18next";
+import { SkeletonCardGrid } from "@/components/skeleton";
 
 export const Route = createFileRoute("/package")({
   validateSearch: (search: Record<string, unknown>): { cargo?: string } => ({
@@ -179,9 +180,7 @@ function PackagesPage() {
         </div>
 
         {busy ? (
-          <div className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-            {t("common.loading")}
-          </div>
+          <SkeletonCardGrid count={8} />
         ) : filtered.length === 0 ? (
           <EmptyState
             title={t("package.noPackages")}
@@ -472,6 +471,9 @@ function PackageForm({
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) return toast.error(t("package.productNameRequired"));
+    if (!clientName.trim()) return toast.error(t("package.clientNameRequired"));
+    if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) return toast.error(t("login.invalidEmail"));
     setBusy(true);
     const payload = {
       package_code: code || `PKG-${Date.now().toString(36).toUpperCase()}`,

@@ -1,20 +1,27 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
+import { createClientSchema, updateClientSchema, validate } from "../validation.js";
 
 const router = Router();
 
 router.use(authMiddleware);
 
-// List all clients with their total spending (stored on client record, survives package deletion)
-router.get("/", async (_req, res) => {
+// List all clients with pagination
+router.get("/", async (req, res) => {
   try {
-    const { rows } = await query(`
-      SELECT * FROM clients ORDER BY created_at DESC
-    `);
-    res.json(rows);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const offset = (page - 1) * limit;
+
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      query("SELECT * FROM clients ORDER BY created_at DESC LIMIT $1 OFFSET $2", [limit, offset]),
+      query("SELECT COUNT(*)::int AS total FROM clients"),
+    ]);
+    res.json({ data: rows, total: countRows[0].total, page, limit });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[clients]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -41,12 +48,13 @@ router.get("/:id", async (req, res) => {
 
     res.json({ client, packages });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[clients]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // Create client
-router.post("/", async (req, res) => {
+router.post("/", validate(createClientSchema), async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await query(
@@ -60,12 +68,13 @@ router.post("/", async (req, res) => {
       res.status(409).json({ message: "A client with this ID number already exists." });
       return;
     }
-    res.status(500).json({ message: err.message });
+    console.error("[clients]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // Update client
-router.put("/:id", async (req, res) => {
+router.put("/:id", validate(updateClientSchema), async (req, res) => {
   try {
     const b = req.body;
     const allowed = ["name", "phone", "email", "id_number", "address", "notes"];
@@ -94,7 +103,8 @@ router.put("/:id", async (req, res) => {
       res.status(409).json({ message: "A client with this ID number already exists." });
       return;
     }
-    res.status(500).json({ message: err.message });
+    console.error("[clients]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -104,7 +114,8 @@ router.delete("/:id", async (req, res) => {
     await query("DELETE FROM clients WHERE id = $1", [req.params.id]);
     res.json({ ok: true });
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("[clients]", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

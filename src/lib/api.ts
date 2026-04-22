@@ -36,6 +36,13 @@ export interface AuthUser {
   email: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -52,7 +59,9 @@ export const api = {
   },
 
   cargos: {
-    list: () => request<any[]>("/cargos"),
+    list: (page?: number, limit?: number) =>
+      request<PaginatedResponse<any>>(`/cargos?page=${page ?? 1}&limit=${limit ?? 200}`)
+        .then((r) => r.data),
     get: (id: string) => request<any | null>(`/cargos/${id}`),
     create: (data: any) => request<any>("/cargos", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/cargos/${id}`, { method: "PUT", body: JSON.stringify(data) }),
@@ -62,8 +71,12 @@ export const api = {
   },
 
   packages: {
-    list: () => request<any[]>("/packages"),
-    listSummary: () => request<any[]>("/packages?fields=cargo_id,price,currency"),
+    list: (page?: number, limit?: number) =>
+      request<PaginatedResponse<any>>(`/packages?page=${page ?? 1}&limit=${limit ?? 200}`)
+        .then((r) => r.data),
+    listSummary: () =>
+      request<PaginatedResponse<any>>("/packages?fields=cargo_id,price,currency&limit=200")
+        .then((r) => r.data),
     listByCargo: (cargoId: string) => request<any[]>(`/packages/by-cargo/${cargoId}`),
     create: (data: any) => request<any>("/packages", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/packages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
@@ -101,7 +114,9 @@ export const api = {
   },
 
   clients: {
-    list: () => request<any[]>("/clients"),
+    list: (page?: number, limit?: number) =>
+      request<PaginatedResponse<any>>(`/clients?page=${page ?? 1}&limit=${limit ?? 200}`)
+        .then((r) => r.data),
     get: (id: string) => request<{ client: any; packages: any[] }>(`/clients/${id}`),
     create: (data: any) => request<any>("/clients", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
