@@ -13,7 +13,7 @@ import i18n from "@/lib/i18n";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Cilesimet — trans.al" },
+      { title: "Cilesimet — trans.square.al" },
       { name: "description", content: "Menaxhoni kurset e kembimit dhe cilesimet e aplikacionit." },
     ],
   }),

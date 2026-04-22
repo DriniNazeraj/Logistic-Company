@@ -13,7 +13,7 @@ import { SkeletonTable } from "@/components/skeleton";
 export const Route = createFileRoute("/clients")({
   head: () => ({
     meta: [
-      { title: "Klientet — trans.al" },
+      { title: "Klientet — trans.square.al" },
       { name: "description", content: "Menaxhoni informacionin e klienteve dhe shikoni historikun e shpenzimeve." },
     ],
   }),

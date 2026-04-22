@@ -15,7 +15,7 @@ import { SkeletonTable } from "@/components/skeleton";
 export const Route = createFileRoute("/cargo")({
   head: () => ({
     meta: [
-      { title: "Ngarkesat — trans.al" },
+      { title: "Ngarkesat — trans.square.al" },
       { name: "description", content: "Menaxhoni ngarkesat midis vendeve." },
     ],
   }),
