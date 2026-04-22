@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS packages (
   price NUMERIC NOT NULL DEFAULT 0,
   currency TEXT NOT NULL DEFAULT 'EUR',
   payment_status TEXT NOT NULL DEFAULT 'paid',
+  amount_paid NUMERIC,
+  amount_remaining NUMERIC,
   client_name TEXT,
   client_phone TEXT,
   client_email TEXT,

@@ -3,12 +3,13 @@ import { useEffect, useRef, useState, MouseEvent as RMouseEvent, FormEvent } fro
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
-import { Modal, Field, Input, Button, FormShell } from "@/components/ui-kit";
+import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-kit";
 import { toast } from "sonner";
 import {
   Plus,
   Trash2,
   X,
+  Search,
   Package as PackageIcon,
   Settings,
   Warehouse as WarehouseIcon,
@@ -61,6 +62,7 @@ type DragState =
 function WarehousePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]);
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [packages, setPackages] = useState<Pkg[]>([]);
@@ -68,22 +70,25 @@ function WarehousePage() {
   const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [busy, setBusy] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightSectionId, setHighlightSectionId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [user, loading, navigate]);
 
-  const load = async () => {
+  const load = async (selectId?: string) => {
     setBusy(true);
 
-    // Try to get the first warehouse
-    let w = await api.warehouses.getFirst();
+    const list: Warehouse[] = await api.warehouses.list() ?? [];
 
     // Auto-create one if none exists
-    if (!w) {
+    if (list.length === 0) {
       try {
-        w = await api.warehouses.create({ name: "Main Warehouse", location: null, canvas_width: 1000, canvas_height: 600 });
+        const created = await api.warehouses.create({ name: "Main Warehouse", location: null, canvas_width: 1000, canvas_height: 600 });
+        list.push(created as Warehouse);
       } catch (err: any) {
         toast.error(err.message);
         setBusy(false);
@@ -91,16 +96,29 @@ function WarehousePage() {
       }
     }
 
+    setAllWarehouses(list);
+
+    // Pick which warehouse to show
+    const w = (selectId ? list.find((x) => x.id === selectId) : null) ?? list[0];
+
     const [ss, ps] = await Promise.all([
       api.sections.list(w.id),
       api.packages.list(),
     ]);
 
-    setWarehouse(w as Warehouse);
+    setWarehouse(w);
     setSections(ss ?? []);
     setPackages((ps ?? []).map((p: any) => ({ id: p.id, package_code: p.package_code, product_name: p.product_name, section_id: p.section_id })));
+    setSelected(null);
     setBusy(false);
   };
+
+  const switchWarehouse = async (id: string) => {
+    if (id === warehouse?.id) return;
+    await load(id);
+  };
+
+  const addWarehouse = () => setNewOpen(true);
 
   useEffect(() => {
     if (user) load();
@@ -223,26 +241,67 @@ function WarehousePage() {
   return (
     <>
       <PageHeader
-        title={warehouse.name}
-        description={warehouse.location || "Visual warehouse layout"}
+        title="Warehouses"
+        description="Manage your warehouse layouts and sections."
         actions={
-          <Button variant="secondary" onClick={() => setSettingsOpen(true)}>
-            <Settings className="h-4 w-4" /> Settings
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select
+              value={warehouse.id}
+              onChange={(e) => switchWarehouse(e.target.value)}
+              className="max-w-[200px]"
+            >
+              {allWarehouses.map((w) => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </Select>
+            <Button variant="secondary" onClick={addWarehouse}>
+              <Plus className="h-3.5 w-3.5" /> New
+            </Button>
+            <Button variant="secondary" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
         }
       />
       <PageBody>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
           {/* -- Canvas -- */}
           <div className="min-w-0 rounded-lg border border-border bg-card p-3">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="font-mono text-xs text-muted-foreground">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="relative max-w-[240px] flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by package code…"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const q = e.target.value;
+                    setSearchQuery(q);
+                    if (!q.trim()) {
+                      setHighlightSectionId(null);
+                      return;
+                    }
+                    const found = packages.find((p) =>
+                      p.package_code.toLowerCase().includes(q.toLowerCase().trim()),
+                    );
+                    if (found?.section_id) {
+                      setHighlightSectionId(found.section_id);
+                      setSelected(found.section_id);
+                    } else {
+                      setHighlightSectionId(null);
+                    }
+                  }}
+                  className="pl-8"
+                />
+              </div>
+              <div className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                 {warehouse.canvas_width} × {warehouse.canvas_height} &middot;{" "}
                 {sections.length} section{sections.length === 1 ? "" : "s"}
               </div>
-              <Button onClick={addSection}>
-                <Plus className="h-3.5 w-3.5" /> Add section
-              </Button>
+              <div className="ml-auto">
+                <Button onClick={addSection}>
+                  <Plus className="h-3.5 w-3.5" /> Add section
+                </Button>
+              </div>
             </div>
             <div className="overflow-auto rounded-md border border-border bg-background">
               <div
@@ -262,6 +321,7 @@ function WarehousePage() {
               >
                 {sections.map((s) => {
                   const active = s.id === selected;
+                  const highlighted = s.id === highlightSectionId;
                   const pkgsHere = packages.filter((p) => p.section_id === s.id).length;
                   return (
                     <div
@@ -288,7 +348,8 @@ function WarehousePage() {
                       }}
                       className={
                         "absolute cursor-move select-none rounded-md border-2 transition-shadow " +
-                        (active ? "shadow-lg ring-2 ring-ring/60" : "")
+                        (highlighted ? "shadow-lg ring-2 ring-accent animate-pulse" : "") +
+                        (active && !highlighted ? " shadow-lg ring-2 ring-ring/60" : "")
                       }
                       style={{
                         left: s.x,
@@ -521,11 +582,65 @@ function WarehousePage() {
           warehouse={warehouse}
           onSaved={(updated) => {
             setWarehouse(updated);
+            setAllWarehouses((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
             setSettingsOpen(false);
           }}
         />
       </Modal>
+
+      <Modal
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        title="New warehouse"
+      >
+        <NewWarehouseForm
+          onCreated={(created) => {
+            setNewOpen(false);
+            load(created.id);
+          }}
+        />
+      </Modal>
     </>
+  );
+}
+
+function NewWarehouseForm({ onCreated }: { onCreated: (w: Warehouse) => void }) {
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const created = await api.warehouses.create({
+        name: name.trim() || "New Warehouse",
+        location: location.trim() || null,
+        canvas_width: 1000,
+        canvas_height: 600,
+      });
+      toast.success("Warehouse created");
+      onCreated(created as Warehouse);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <FormShell onSubmit={submit}>
+      <Field label="Name">
+        <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Warehouse name" />
+      </Field>
+      <Field label="Location">
+        <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Tirana, Albania" />
+      </Field>
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={busy}>
+          {busy ? "Creating…" : "Create warehouse"}
+        </Button>
+      </div>
+    </FormShell>
   );
 }
 

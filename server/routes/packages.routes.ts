@@ -103,11 +103,13 @@ router.post("/", async (req, res) => {
     const b = req.body;
     const { rows } = await query(
       `INSERT INTO packages (package_code, product_name, price, currency, payment_status,
+       amount_paid, amount_remaining,
        client_name, client_phone, client_email, client_id_number,
        destination_location, delivery_date, arrival_date, image_url, cargo_id, section_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
       [
         b.package_code, b.product_name, b.price ?? 0, b.currency ?? "EUR", b.payment_status ?? "paid",
+        b.amount_paid, b.amount_remaining,
         b.client_name, b.client_phone, b.client_email, b.client_id_number,
         b.destination_location, b.delivery_date, b.arrival_date, b.image_url, b.cargo_id, b.section_id,
       ],
@@ -126,6 +128,7 @@ router.put("/:id", async (req, res) => {
     // Build dynamic SET clause from provided fields
     const allowed = [
       "package_code", "product_name", "price", "currency", "payment_status",
+      "amount_paid", "amount_remaining",
       "client_name", "client_phone", "client_email", "client_id_number",
       "destination_location", "delivery_date", "arrival_date", "image_url", "cargo_id", "section_id",
     ];
