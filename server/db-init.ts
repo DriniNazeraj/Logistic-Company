@@ -1,4 +1,5 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { pool, query } from "./db.js";
 
 const SQL = `
@@ -112,10 +113,23 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_all NUMERIC NOT NULL DE
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_packages INTEGER NOT NULL DEFAULT 0;
 `;
 
+async function seedAdmin() {
+  const email = "manager@gmail.com";
+  const { rows } = await query("SELECT id FROM users WHERE email = $1", [email]);
+  if (rows.length > 0) {
+    console.log("Admin user already exists, skipping seed.");
+    return;
+  }
+  const hash = await bcrypt.hash("Square@2026", 10);
+  await query("INSERT INTO users (email, password_hash) VALUES ($1, $2)", [email, hash]);
+  console.log("Admin user created: manager@gmail.com");
+}
+
 async function init() {
   console.log("Initializing database...");
   await query(SQL);
   await query(MIGRATIONS);
+  await seedAdmin();
   console.log("Database initialized successfully.");
   await pool.end();
 }

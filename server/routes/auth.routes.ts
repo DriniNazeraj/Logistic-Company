@@ -25,21 +25,9 @@ router.post("/login", validate(loginSchema), async (req, res) => {
   }
 });
 
-router.post("/register", validate(registerSchema), async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const existing = await findUserByEmail(email);
-    if (existing) {
-      res.status(409).json({ message: "User already exists" });
-      return;
-    }
-    const user = await createUser(email, password);
-    const token = signToken(user);
-    res.json({ token, user });
-  } catch (err: any) {
-    console.error("[auth]", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
+// Registration disabled — single admin user is seeded via db-init
+router.post("/register", (_req, res) => {
+  res.status(403).json({ message: "Registration is disabled" });
 });
 
 router.get("/me", authMiddleware, (req: AuthRequest, res) => {
