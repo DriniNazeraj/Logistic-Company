@@ -94,6 +94,14 @@ export const api = {
       request<{ ok: boolean }>("/settings/exchange-rates", { method: "PUT", body: JSON.stringify(rates) }),
   },
 
+  clients: {
+    list: () => request<any[]>("/clients"),
+    get: (id: string) => request<{ client: any; packages: any[] }>(`/clients/${id}`),
+    create: (data: any) => request<any>("/clients", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: any) => request<any>(`/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: string) => request<void>(`/clients/${id}`, { method: "DELETE" }),
+  },
+
   upload: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);

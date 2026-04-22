@@ -13,7 +13,9 @@ import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PackageRouteImport } from './routes/package'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as CargoRouteImport } from './routes/cargo'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TrackCodeRouteImport } from './routes/track.$code'
 import { Route as CargoIdRouteImport } from './routes/cargo.$id'
@@ -38,9 +40,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CargoRoute = CargoRouteImport.update({
   id: '/cargo',
   path: '/cargo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -61,7 +73,9 @@ const CargoIdRoute = CargoIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/cargo': typeof CargoRouteWithChildren
+  '/clients': typeof ClientsRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -71,7 +85,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/cargo': typeof CargoRouteWithChildren
+  '/clients': typeof ClientsRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -82,7 +98,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calendar': typeof CalendarRoute
   '/cargo': typeof CargoRouteWithChildren
+  '/clients': typeof ClientsRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -94,7 +112,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calendar'
     | '/cargo'
+    | '/clients'
     | '/login'
     | '/package'
     | '/settings'
@@ -104,7 +124,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calendar'
     | '/cargo'
+    | '/clients'
     | '/login'
     | '/package'
     | '/settings'
@@ -114,7 +136,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calendar'
     | '/cargo'
+    | '/clients'
     | '/login'
     | '/package'
     | '/settings'
@@ -125,7 +149,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalendarRoute: typeof CalendarRoute
   CargoRoute: typeof CargoRouteWithChildren
+  ClientsRoute: typeof ClientsRoute
   LoginRoute: typeof LoginRoute
   PackageRoute: typeof PackageRoute
   SettingsRoute: typeof SettingsRoute
@@ -163,11 +189,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cargo': {
       id: '/cargo'
       path: '/cargo'
       fullPath: '/cargo'
       preLoaderRoute: typeof CargoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -206,7 +246,9 @@ const CargoRouteWithChildren = CargoRoute._addFileChildren(CargoRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalendarRoute: CalendarRoute,
   CargoRoute: CargoRouteWithChildren,
+  ClientsRoute: ClientsRoute,
   LoginRoute: LoginRoute,
   PackageRoute: PackageRoute,
   SettingsRoute: SettingsRoute,

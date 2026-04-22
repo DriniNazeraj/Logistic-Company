@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
-import { formatMoney, convertTotals, loadExchangeRates } from "@/lib/format";
+import { formatMoney, convertTotals, loadExchangeRates, type Currency } from "@/lib/format";
 import { Truck, Package, Warehouse as WarehouseIcon, ArrowUpRight } from "lucide-react";
 import { autoTransitPendingCargos } from "@/lib/auto-transit";
 import {
@@ -37,6 +37,7 @@ function Index() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
+  const overviewCurrency = (localStorage.getItem("overview_currency") as Currency) || "USD";
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -127,7 +128,7 @@ function Index() {
                 </div>
                 <c.icon className={"h-4 w-4 " + (c.accent ? "text-accent" : "text-muted-foreground")} />
               </div>
-              <div className="mt-3 font-mono text-3xl font-semibold tracking-tight">
+              <div className="mt-3 font-mono text-2xl font-semibold tracking-tight sm:text-3xl">
                 {c.value}
               </div>
             </Link>
@@ -212,10 +213,10 @@ function Index() {
               <>
                 <div className="mt-3 border-b border-border pb-3">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Total (USD)
+                    Total ({overviewCurrency})
                   </div>
-                  <div className="font-mono text-4xl font-semibold tracking-tight">
-                    {formatMoney(convertTotals(stats.totalsByCurrency, "USD"), "USD")}
+                  <div className="font-mono text-2xl font-semibold tracking-tight sm:text-4xl">
+                    {formatMoney(convertTotals(stats.totalsByCurrency, overviewCurrency), overviewCurrency)}
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
@@ -226,7 +227,7 @@ function Index() {
                         <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                           {c}
                         </div>
-                        <div className="font-mono text-2xl font-semibold tracking-tight text-muted-foreground">
+                        <div className="font-mono text-lg font-semibold tracking-tight text-muted-foreground sm:text-2xl">
                           {formatMoney(stats.totalsByCurrency[c], c)}
                         </div>
                       </div>
@@ -234,7 +235,7 @@ function Index() {
                 </div>
               </>
             ) : (
-              <div className="mt-2 font-mono text-4xl font-semibold tracking-tight text-muted-foreground">
+              <div className="mt-2 font-mono text-2xl font-semibold tracking-tight text-muted-foreground sm:text-4xl">
                 —
               </div>
             )}

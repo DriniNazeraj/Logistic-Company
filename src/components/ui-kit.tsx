@@ -15,14 +15,14 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm sm:items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-lg border border-border bg-card shadow-2xl"
+        className="max-h-[90vh] w-full rounded-t-lg border border-border bg-card shadow-2xl sm:max-w-lg sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
           <h2 className="text-sm font-semibold">{title}</h2>
           <button
             onClick={onClose}
@@ -31,7 +31,7 @@ export function Modal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
+        <div className="max-h-[75vh] overflow-y-auto p-4 sm:p-5">{children}</div>
       </div>
     </div>
   );

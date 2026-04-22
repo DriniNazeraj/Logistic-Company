@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { Toaster } from "sonner";
-import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut, Settings, Sun, Moon } from "lucide-react";
+import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut, Settings, Sun, Moon, CalendarDays, Users, Menu, X } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider, useTheme } from "@/lib/theme-context";
 
@@ -82,7 +83,13 @@ function ThemedToaster() {
 function AppShell() {
   const { user, loading, signOut } = useAuth();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const isPublicRoute = location.pathname === "/login" || location.pathname.startsWith("/track/");
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   if (loading) {
     return (
@@ -99,54 +106,94 @@ function AppShell() {
   const nav = [
     { to: "/", label: "Overview", icon: LayoutDashboard },
     { to: "/cargo", label: "Cargos", icon: Truck },
+    { to: "/calendar", label: "Calendar", icon: CalendarDays },
     { to: "/package", label: "Packages", icon: Package },
+    { to: "/clients", label: "Clients", icon: Users },
     { to: "/warehouse", label: "Warehouses", icon: WarehouseIcon },
     { to: "/settings", label: "Settings", icon: Settings },
   ] as const;
 
+  const sidebarContent = (
+    <>
+      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
+          <Truck className="h-4 w-4" />
+        </div>
+        <div className="font-mono text-sm font-semibold tracking-tight">trans.al</div>
+        {/* Close button for mobile */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground md:hidden"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <nav className="flex-1 space-y-0.5 p-3">
+        {nav.map((n) => {
+          const active =
+            n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to);
+          return (
+            <Link
+              key={n.to}
+              to={n.to}
+              className={
+                "group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors " +
+                (active
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-foreground")
+              }
+            >
+              <n.icon className="h-4 w-4" />
+              <span>{n.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="border-t border-sidebar-border p-3">
+        <div className="mb-2 truncate px-2 text-xs text-muted-foreground">{user.email}</div>
+        <button
+          onClick={() => signOut()}
+          className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
+      {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
-        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
-            <Truck className="h-4 w-4" />
-          </div>
-          <div className="font-mono text-sm font-semibold tracking-tight">trans.al</div>
-        </div>
-        <nav className="flex-1 space-y-0.5 p-3">
-          {nav.map((n) => {
-            const active =
-              n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to);
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={
-                  "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors " +
-                  (active
-                    ? "bg-sidebar-accent text-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-foreground")
-                }
-              >
-                <n.icon className="h-4 w-4" />
-                <span>{n.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-sidebar-border p-3">
-          <div className="mb-2 truncate px-2 text-xs text-muted-foreground">{user.email}</div>
-          <button
-            onClick={() => signOut()}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
-        </div>
+        {sidebarContent}
       </aside>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        >
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+          <aside
+            className="relative flex h-full w-64 flex-col bg-sidebar shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex justify-end px-4 pt-3">
+        {/* Top bar with hamburger + theme toggle */}
+        <div className="flex items-center justify-between px-4 pt-3 md:justify-end">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
           <ThemeToggle />
         </div>
         <Outlet />

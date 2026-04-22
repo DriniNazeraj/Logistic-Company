@@ -160,8 +160,8 @@ function CargosPage() {
             }
           />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full min-w-[700px]">
               <thead className="bg-secondary/50">
                 <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Code</th>

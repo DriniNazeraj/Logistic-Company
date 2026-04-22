@@ -11,6 +11,7 @@ import warehousesRoutes from "./routes/warehouses.routes.js";
 import sectionsRoutes from "./routes/sections.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
+import clientsRoutes from "./routes/clients.routes.js";
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3001", 10);
@@ -29,6 +30,7 @@ app.use("/api/warehouses", warehousesRoutes);
 app.use("/api/sections", sectionsRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/clients", clientsRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", database: isDatabaseAvailable() });

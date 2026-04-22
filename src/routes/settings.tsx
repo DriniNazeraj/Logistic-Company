@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody } from "@/components/layout-primitives";
-import { Field, Input, Button } from "@/components/ui-kit";
+import { Field, Input, Select, Button } from "@/components/ui-kit";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import type { Currency } from "@/lib/format";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -37,6 +38,9 @@ function SettingsPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [rates, setRates] = useState<Record<string, string>>({});
+  const [defaultCurrency, setDefaultCurrency] = useState<Currency>(
+    () => (localStorage.getItem("overview_currency") as Currency) || "USD",
+  );
   const [busy, setBusy] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -107,6 +111,31 @@ function SettingsPage() {
           </div>
         ) : (
           <div className="max-w-lg space-y-6">
+            {/* Default overview currency */}
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-sm font-semibold">Overview Currency</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Choose which currency is shown as the main total on the Overview dashboard.
+              </p>
+              <div className="mt-4 max-w-[200px]">
+                <Field label="Default currency">
+                  <Select
+                    value={defaultCurrency}
+                    onChange={(e) => {
+                      const val = e.target.value as Currency;
+                      setDefaultCurrency(val);
+                      localStorage.setItem("overview_currency", val);
+                      toast.success(`Overview currency set to ${val}`);
+                    }}
+                  >
+                    <option value="USD">🇺🇸 US Dollar (USD)</option>
+                    <option value="EUR">🇪🇺 Euro (EUR)</option>
+                    <option value="ALL">🇦🇱 Albanian Lek (ALL)</option>
+                  </Select>
+                </Field>
+              </div>
+            </div>
+
             <div className="rounded-lg border border-border bg-card p-5">
               <h2 className="text-sm font-semibold">Exchange Rates</h2>
               <p className="mt-1 text-xs text-muted-foreground">

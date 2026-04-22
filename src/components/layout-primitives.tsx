@@ -10,20 +10,20 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur">
+    <header className="sticky top-0 z-10 flex min-h-[3.5rem] flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 px-4 py-2 backdrop-blur sm:px-6">
       <div className="min-w-0">
         <h1 className="truncate text-sm font-semibold tracking-tight">{title}</h1>
         {description && (
-          <p className="truncate text-xs text-muted-foreground">{description}</p>
+          <p className="hidden truncate text-xs text-muted-foreground sm:block">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </header>
   );
 }
 
 export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="flex-1 px-6 py-6">{children}</div>;
+  return <div className="flex-1 px-4 py-4 sm:px-6 sm:py-6">{children}</div>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
