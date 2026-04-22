@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Package as PackageIcon, MapPin, Calendar, CreditCard, User, Phone, Mail, IdCard } from "lucide-react";
+import { Package as PackageIcon, MapPin, Calendar, CreditCard, User, Phone, Mail, IdCard, ScanLine, CheckCircle2, XCircle, Camera, KeyboardIcon } from "lucide-react";
 
 export const Route = createFileRoute("/track/$code")({
-  head: ({ params }) => ({
+  head: () => ({
     meta: [
-      { title: `Track ${params.code} — trans.al` },
+      { title: "Track Package — trans.al" },
       { name: "description", content: "Track your package status." },
     ],
   }),
@@ -32,6 +32,8 @@ interface TrackPkg {
   client_id_number: string | null;
   image_url: string | null;
   cargo_id: string | null;
+  track_token: string;
+  confirmed_at: string | null;
 }
 
 interface CargoInfo {
@@ -48,12 +50,24 @@ function TrackPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Scan state
+  const [scanning, setScanning] = useState(false);
+  const [manualEntry, setManualEntry] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+  const [scanResult, setScanResult] = useState<"success" | "mismatch" | "already" | null>(null);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
         const data = await api.packages.track(code);
         setPkg(data.package as TrackPkg);
+        if (data.package.confirmed_at) {
+          setConfirmedAt(data.package.confirmed_at);
+          setScanResult("already");
+        }
         if (data.cargo) setCargo(data.cargo as CargoInfo);
       } catch {
         setNotFound(true);
@@ -63,6 +77,28 @@ function TrackPage() {
     load();
   }, [code]);
 
+  const handleScanSuccess = useCallback(async (scannedCode: string) => {
+    if (confirming) return;
+    setConfirming(true);
+    setScanning(false);
+
+    try {
+      const result = await api.packages.confirm(code, scannedCode);
+      if (result.already) {
+        setScanResult("already");
+        setConfirmedAt(result.confirmed_at);
+      } else if (result.confirmed) {
+        setScanResult("success");
+        setConfirmedAt(result.confirmed_at);
+        // Package has been deleted from DB after confirmation — clear details
+        setPkg(null);
+      }
+    } catch {
+      setScanResult("mismatch");
+    }
+    setConfirming(false);
+  }, [code, confirming]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -71,7 +107,43 @@ function TrackPage() {
     );
   }
 
-  if (notFound || !pkg) {
+  // Show delivered screen after successful confirmation or if package was already confirmed & deleted
+  if ((!pkg && scanResult === "success") || notFound) {
+    if (scanResult === "success" || scanResult === "already") {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="max-w-md text-center space-y-4">
+            <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
+            <h1 className="text-xl font-semibold text-foreground">Package Delivered</h1>
+            <p className="text-sm text-muted-foreground">
+              This package has been confirmed and delivered successfully.
+            </p>
+            {confirmedAt && (
+              <p className="text-xs text-muted-foreground">
+                Confirmed on {formatDate(confirmedAt)}
+              </p>
+            )}
+            <div className="pt-2 text-xs text-muted-foreground">
+              trans.al — Logistics Manager
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <PackageIcon className="mx-auto h-12 w-12 text-muted-foreground/40" />
+          <h1 className="mt-4 text-xl font-semibold text-foreground">Package not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No package with code <span className="font-mono">{code}</span> was found.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pkg) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
@@ -92,6 +164,8 @@ function TrackPage() {
     delivered: "bg-green-500/20 text-green-400",
   }[cargo?.status ?? ""] ?? "bg-muted text-muted-foreground";
 
+  const isConfirmed = !!confirmedAt || scanResult === "success" || scanResult === "already";
+
   return (
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-lg space-y-4">
@@ -103,6 +177,101 @@ function TrackPage() {
           <h1 className="mt-3 text-lg font-semibold text-foreground">Package Tracking</h1>
           <p className="font-mono text-sm text-muted-foreground">{pkg.package_code}</p>
         </div>
+
+        {/* Confirmation status banner */}
+        {isConfirmed && (
+          <div className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-4">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+            <div>
+              <div className="text-sm font-medium text-green-500">Package confirmed</div>
+              <div className="text-xs text-green-500/70">
+                Delivery confirmed on {formatDate(confirmedAt)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scan to confirm section */}
+        {!isConfirmed && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Confirm Delivery</h3>
+            <p className="text-sm text-muted-foreground">
+              Scan the QR code on your package to verify it's yours and confirm delivery.
+            </p>
+
+            {scanResult === "mismatch" && (
+              <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                <XCircle className="h-5 w-5 shrink-0 text-red-500" />
+                <div>
+                  <div className="text-sm font-medium text-red-500">QR code doesn't match</div>
+                  <div className="text-xs text-red-500/70">
+                    The scanned package is not the same as this tracking link. Try again.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {confirming ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Confirming…</span>
+              </div>
+            ) : scanning ? (
+              <QrScanner
+                onScan={handleScanSuccess}
+                onClose={() => setScanning(false)}
+                onFallback={() => { setScanning(false); setManualEntry(true); }}
+              />
+            ) : manualEntry ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Type the package code printed below the QR code on your box:
+                </p>
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder="e.g. PKG-ABC123"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2"
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    if (manualCode.trim()) handleScanSuccess(manualCode.trim());
+                  }}
+                  disabled={!manualCode.trim()}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Confirm package
+                </button>
+                <button
+                  onClick={() => { setManualEntry(false); setScanResult(null); }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  Back
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  onClick={() => { setScanResult(null); setScanning(true); }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  <ScanLine className="h-4 w-4" />
+                  Scan package QR code
+                </button>
+                <button
+                  onClick={() => { setScanResult(null); setManualEntry(true); }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <KeyboardIcon className="h-4 w-4" />
+                  Enter code manually
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Product */}
         <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -222,6 +391,121 @@ function TrackPage() {
           trans.al — Logistics Manager
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── QR Scanner Component ─── */
+
+function QrScanner({ onScan, onClose, onFallback }: { onScan: (code: string) => void; onClose: () => void; onFallback: () => void }) {
+  const scannerRef = useRef<HTMLDivElement>(null);
+  const scannerInstanceRef = useRef<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isHttps] = useState(() => window.location.protocol === "https:" || window.location.hostname === "localhost");
+
+  useEffect(() => {
+    let stopped = false;
+
+    const startScanner = async () => {
+      const { Html5Qrcode } = await import("html5-qrcode");
+
+      if (stopped || !scannerRef.current) return;
+
+      const scanner = new Html5Qrcode("qr-reader");
+      scannerInstanceRef.current = scanner;
+
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            let scannedCode = decodedText;
+            const trackMatch = decodedText.match(/\/track\/([^/?#]+)/);
+            if (trackMatch) {
+              scannedCode = decodeURIComponent(trackMatch[1]);
+            }
+            scanner.stop().catch(() => {});
+            onScan(scannedCode);
+          },
+          () => {},
+        );
+      } catch {
+        if (!isHttps) {
+          setError("Camera requires a secure (HTTPS) connection. This page is using HTTP, so the browser blocks camera access.");
+        } else {
+          setError("Could not access camera. Your browser may have blocked permission.");
+        }
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      stopped = true;
+      scannerInstanceRef.current?.stop().catch(() => {});
+    };
+  }, [onScan, isHttps]);
+
+  return (
+    <div className="space-y-3">
+      {!error && (
+        <div className="relative overflow-hidden rounded-lg border border-border bg-black">
+          <div id="qr-reader" ref={scannerRef} className="w-full" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="h-48 w-48 rounded-lg border-2 border-white/30" />
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="space-y-3">
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm">
+            <div className="font-medium text-red-500">Camera not available</div>
+            <div className="mt-1 text-xs text-red-500/80">{error}</div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <div className="text-xs font-medium text-muted-foreground">What you can do:</div>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              {!isHttps && (
+                <li className="flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0">1.</span>
+                  <span>Ask the sender for an HTTPS link, or open this page in a browser that supports camera over HTTP</span>
+                </li>
+              )}
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0">{isHttps ? "1" : "2"}.</span>
+                <span>Check your browser settings and allow camera permission for this site</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0">{isHttps ? "2" : "3"}.</span>
+                <span>Or use the manual entry option below to type the code from the package label</span>
+              </li>
+            </ul>
+          </div>
+
+          <button
+            onClick={onFallback}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+          >
+            <KeyboardIcon className="h-4 w-4" />
+            Enter code manually instead
+          </button>
+        </div>
+      )}
+
+      {!error && (
+        <p className="text-center text-xs text-muted-foreground">
+          Point your camera at the QR code on the package
+        </p>
+      )}
+
+      <button
+        onClick={onClose}
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        Cancel
+      </button>
     </div>
   );
 }

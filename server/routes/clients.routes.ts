@@ -6,27 +6,11 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// List all clients with their total spending
+// List all clients with their total spending (stored on client record, survives package deletion)
 router.get("/", async (_req, res) => {
   try {
     const { rows } = await query(`
-      SELECT c.*,
-        COALESCE(s.total_packages, 0)::int AS total_packages,
-        COALESCE(s.total_spent_eur, 0)::numeric AS total_spent_eur,
-        COALESCE(s.total_spent_usd, 0)::numeric AS total_spent_usd,
-        COALESCE(s.total_spent_all, 0)::numeric AS total_spent_all
-      FROM clients c
-      LEFT JOIN LATERAL (
-        SELECT
-          COUNT(*)::int AS total_packages,
-          SUM(CASE WHEN p.currency = 'EUR' THEN p.price ELSE 0 END) AS total_spent_eur,
-          SUM(CASE WHEN p.currency = 'USD' THEN p.price ELSE 0 END) AS total_spent_usd,
-          SUM(CASE WHEN p.currency = 'ALL' THEN p.price ELSE 0 END) AS total_spent_all
-        FROM packages p
-        WHERE p.client_id_number = c.id_number
-           OR (p.client_email = c.email AND c.email IS NOT NULL AND c.email <> '')
-      ) s ON true
-      ORDER BY c.created_at DESC
+      SELECT * FROM clients ORDER BY created_at DESC
     `);
     res.json(rows);
   } catch (err: any) {

@@ -45,12 +45,45 @@ async function upsertClientFromPackage(b: any) {
   }
 }
 
-// Public tracking endpoint (no auth)
-router.get("/track/:code", async (req, res) => {
+/**
+ * Add a package's price to the client's persistent spending totals.
+ * Finds client by id_number or email (same logic as upsertClientFromPackage).
+ */
+async function addSpendingToClient(pkg: any) {
+  const idNum = pkg.client_id_number?.trim() || null;
+  const email = pkg.client_email?.trim() || null;
+  const price = parseFloat(pkg.price) || 0;
+  const currency = (pkg.currency || "EUR").toUpperCase();
+  if (price === 0) return;
+
+  const col =
+    currency === "EUR" ? "total_spent_eur" :
+    currency === "USD" ? "total_spent_usd" :
+    currency === "ALL" ? "total_spent_all" : null;
+  if (!col) return;
+
+  const conditions: string[] = [];
+  const vals: any[] = [price];
+  let i = 2;
+  if (idNum) { conditions.push(`id_number = $${i++}`); vals.push(idNum); }
+  if (email) { conditions.push(`(email = $${i++} AND email IS NOT NULL AND email <> '')`); vals.push(email); }
+  if (conditions.length === 0) return;
+
+  await query(
+    `UPDATE clients SET ${col} = ${col} + $1, total_packages = total_packages + 1, updated_at = now()
+     WHERE ${conditions.join(" OR ")}`,
+    vals,
+  );
+}
+
+// Public tracking endpoint (no auth) — looks up by track_token (secure) or package_code (legacy)
+router.get("/track/:token", async (req, res) => {
   try {
+    // Try track_token first (48-char hex), fall back to package_code for backwards compat
+    const token = req.params.token;
     const { rows: pkgs } = await query(
-      "SELECT * FROM packages WHERE package_code = $1 LIMIT 1",
-      [req.params.code],
+      "SELECT * FROM packages WHERE track_token = $1 OR package_code = $1 LIMIT 1",
+      [token],
     );
     if (pkgs.length === 0) {
       res.status(404).json({ message: "Package not found" });
@@ -66,6 +99,51 @@ router.get("/track/:code", async (req, res) => {
       cargo = rows[0] ?? null;
     }
     res.json({ package: pkg, cargo });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Public confirm delivery endpoint (no auth)
+// Client scans QR on the physical box; the scanned token must match the package's track_token.
+router.post("/confirm/:token", async (req, res) => {
+  try {
+    const { scanned_code } = req.body;
+    if (!scanned_code) {
+      res.status(400).json({ message: "No scanned code provided" });
+      return;
+    }
+    // Look up the package by the URL token
+    const { rows } = await query(
+      "SELECT id, package_code, track_token, confirmed_at FROM packages WHERE track_token = $1 OR package_code = $1 LIMIT 1",
+      [req.params.token],
+    );
+    if (rows.length === 0) {
+      res.status(404).json({ message: "Package not found" });
+      return;
+    }
+    const pkg = rows[0];
+    // The scanned QR must contain the same token OR matching package code
+    const scannedMatches =
+      scanned_code === pkg.track_token ||
+      scanned_code === pkg.package_code;
+    if (!scannedMatches) {
+      res.status(400).json({ message: "Scanned package does not match. This is not your package." });
+      return;
+    }
+    if (pkg.confirmed_at) {
+      res.json({ already: true, confirmed_at: pkg.confirmed_at });
+      return;
+    }
+    // Fetch full package data so we can preserve client info and spending before deleting
+    const { rows: fullPkg } = await query("SELECT * FROM packages WHERE id = $1", [pkg.id]);
+    if (fullPkg.length > 0) {
+      // Ensure client record is saved and spending is accumulated before deleting
+      await upsertClientFromPackage(fullPkg[0]).catch(() => {});
+    }
+    // Delete the package from the database
+    await query("DELETE FROM packages WHERE id = $1", [pkg.id]);
+    res.json({ confirmed: true, confirmed_at: new Date().toISOString() });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -112,8 +190,9 @@ router.post("/", async (req, res) => {
         b.destination_location, b.delivery_date, b.arrival_date, b.image_url, b.cargo_id, b.section_id,
       ],
     );
-    // Auto-create/update client from package info
+    // Auto-create/update client from package info, then add spending
     await upsertClientFromPackage(b).catch(() => {});
+    await addSpendingToClient(rows[0]).catch(() => {});
     res.json(rows[0]);
   } catch (err: any) {
     res.status(500).json({ message: err.message });

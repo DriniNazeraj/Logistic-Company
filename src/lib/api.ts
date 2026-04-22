@@ -69,6 +69,11 @@ export const api = {
     update: (id: string, data: any) => request<any>(`/packages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/packages/${id}`, { method: "DELETE" }),
     track: (code: string) => request<{ package: any; cargo: any | null }>(`/packages/track/${encodeURIComponent(code)}`),
+    confirm: (code: string, scannedCode: string) =>
+      request<{ confirmed?: boolean; already?: boolean; confirmed_at: string }>(`/packages/confirm/${encodeURIComponent(code)}`, {
+        method: "POST",
+        body: JSON.stringify({ scanned_code: scannedCode }),
+      }),
   },
 
   warehouses: {

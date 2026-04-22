@@ -2,6 +2,8 @@ import "dotenv/config";
 import { pool, query } from "./db.js";
 
 const SQL = `
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Users table for auth
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,6 +69,10 @@ CREATE TABLE IF NOT EXISTS clients (
   id_number TEXT UNIQUE,
   address TEXT,
   notes TEXT,
+  total_spent_eur NUMERIC NOT NULL DEFAULT 0,
+  total_spent_usd NUMERIC NOT NULL DEFAULT 0,
+  total_spent_all NUMERIC NOT NULL DEFAULT 0,
+  total_packages INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -89,14 +95,25 @@ CREATE TABLE IF NOT EXISTS packages (
   image_url TEXT,
   cargo_id UUID REFERENCES cargos(id) ON DELETE SET NULL,
   section_id UUID REFERENCES sections(id) ON DELETE SET NULL,
+  track_token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(24), 'hex'),
+  confirmed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 `;
 
+const MIGRATIONS = `
+-- Add spending columns to clients (safe to re-run)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_eur NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_usd NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_all NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_packages INTEGER NOT NULL DEFAULT 0;
+`;
+
 async function init() {
   console.log("Initializing database...");
   await query(SQL);
+  await query(MIGRATIONS);
   console.log("Database initialized successfully.");
   await pool.end();
 }

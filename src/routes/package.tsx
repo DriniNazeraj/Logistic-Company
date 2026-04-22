@@ -44,6 +44,7 @@ interface Pkg {
   image_url: string | null;
   cargo_id: string | null;
   section_id: string | null;
+  track_token: string;
 }
 
 interface CargoOpt {
@@ -275,7 +276,7 @@ function PackagesPage() {
                       <Button
                         variant="ghost"
                         onClick={() => {
-                          const url = `${window.location.origin}/track/${encodeURIComponent(p.package_code)}`;
+                          const url = `${window.location.origin}/track/${p.track_token}`;
                           navigator.clipboard.writeText(url);
                           toast.success("Tracking link copied");
                         }}
@@ -338,7 +339,7 @@ function PackageQR({ pkg }: { pkg: Pkg }) {
   const qrRef = useRef<HTMLDivElement>(null);
   const paymentLabel = { paid: "Paid", on_delivery: "On delivery", partly: "Partly" }[pkg.payment_status] ?? "—";
 
-  const trackUrl = `${window.location.origin}/track/${encodeURIComponent(pkg.package_code)}`;
+  const trackUrl = `${window.location.origin}/track/${pkg.track_token}`;
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector("svg");
