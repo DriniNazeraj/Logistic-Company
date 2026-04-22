@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import { authMiddleware } from "../auth.js";
@@ -7,7 +8,7 @@ const storage = multer.diskStorage({
   destination: path.join(import.meta.dirname, "..", "uploads"),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+    const name = `${crypto.randomUUID()}${ext}`;
     cb(null, name);
   },
 });

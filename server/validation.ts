@@ -3,22 +3,24 @@ import type { Request, Response, NextFunction } from "express";
 
 // ── Reusable helpers ──
 
-const optionalString = z.string().trim().optional();
+const shortStr = (max = 200) => z.string().trim().max(max);
+const optionalString = shortStr().optional();
 const optionalDate = z.string().date().optional().or(z.literal("").transform(() => undefined));
 const currency = z.enum(["EUR", "USD", "ALL"]).default("EUR");
 
 // ── Auth ──
 
 export const loginSchema = z.object({
-  email: z.string().trim().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().trim().max(254).email("Invalid email address"),
+  password: z.string().min(1, "Password is required").max(128),
 });
 
 export const registerSchema = z.object({
-  email: z.string().trim().email("Invalid email address"),
+  email: z.string().trim().max(254).email("Invalid email address"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
+    .max(128)
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character"),
 });
@@ -26,9 +28,9 @@ export const registerSchema = z.object({
 // ── Cargos ──
 
 export const createCargoSchema = z.object({
-  cargo_code: z.string().trim().min(1, "Cargo code is required"),
-  departure_country: z.string().trim().min(1, "Departure country is required"),
-  destination_country: z.string().trim().min(1, "Destination country is required"),
+  cargo_code: shortStr(50).min(1, "Cargo code is required"),
+  departure_country: shortStr(100).min(1, "Departure country is required"),
+  destination_country: shortStr(100).min(1, "Destination country is required"),
   departure_date: optionalDate,
   arrival_date: optionalDate,
   status: z.enum(["pending", "in_transit", "delivered"]).default("pending"),
@@ -40,23 +42,23 @@ export const updateCargoSchema = createCargoSchema.partial();
 // ── Packages ──
 
 export const createPackageSchema = z.object({
-  package_code: z.string().trim().min(1, "Package code is required"),
-  product_name: z.string().trim().min(1, "Product name is required"),
+  package_code: shortStr(50).min(1, "Package code is required"),
+  product_name: shortStr(200).min(1, "Product name is required"),
   price: z.coerce.number().min(0).default(0),
   currency: currency,
   payment_status: z.enum(["paid", "unpaid", "partial"]).default("paid"),
   amount_paid: z.coerce.number().min(0).optional(),
   amount_remaining: z.coerce.number().min(0).optional(),
-  client_name: optionalString,
-  client_phone: optionalString,
-  client_email: z.string().trim().email().optional().or(z.literal("")),
-  client_id_number: optionalString,
-  destination_location: optionalString,
+  client_name: shortStr(200).optional(),
+  client_phone: shortStr(50).optional(),
+  client_email: z.string().trim().max(254).email().optional().or(z.literal("")),
+  client_id_number: shortStr(50).optional(),
+  destination_location: shortStr(500).optional(),
   delivery_date: optionalDate,
   arrival_date: optionalDate,
-  image_url: optionalString,
-  cargo_id: optionalString,
-  section_id: optionalString,
+  image_url: shortStr(2000).optional(),
+  cargo_id: shortStr(100).optional(),
+  section_id: shortStr(100).optional(),
 });
 
 export const updatePackageSchema = createPackageSchema.partial();
@@ -64,12 +66,12 @@ export const updatePackageSchema = createPackageSchema.partial();
 // ── Clients ──
 
 export const createClientSchema = z.object({
-  name: z.string().trim().min(1, "Client name is required"),
-  phone: optionalString,
-  email: z.string().trim().email().optional().or(z.literal("")),
-  id_number: optionalString,
-  address: optionalString,
-  notes: optionalString,
+  name: shortStr(200).min(1, "Client name is required"),
+  phone: shortStr(50).optional(),
+  email: z.string().trim().max(254).email().optional().or(z.literal("")),
+  id_number: shortStr(50).optional(),
+  address: shortStr(500).optional(),
+  notes: z.string().trim().max(5000).optional(),
 });
 
 export const updateClientSchema = createClientSchema.partial();
@@ -77,10 +79,10 @@ export const updateClientSchema = createClientSchema.partial();
 // ── Warehouses ──
 
 export const createWarehouseSchema = z.object({
-  name: z.string().trim().min(1, "Warehouse name is required"),
-  location: optionalString,
-  canvas_width: z.coerce.number().int().positive().default(800),
-  canvas_height: z.coerce.number().int().positive().default(600),
+  name: shortStr(200).min(1, "Warehouse name is required"),
+  location: shortStr(500).optional(),
+  canvas_width: z.coerce.number().int().positive().max(10000).default(800),
+  canvas_height: z.coerce.number().int().positive().max(10000).default(600),
 });
 
 export const updateWarehouseSchema = createWarehouseSchema.partial();
@@ -89,12 +91,12 @@ export const updateWarehouseSchema = createWarehouseSchema.partial();
 
 export const createSectionSchema = z.object({
   warehouse_id: z.string().uuid("Invalid warehouse ID"),
-  name: z.string().trim().min(1, "Section name is required"),
-  color: z.string().default("#3b82f6"),
+  name: shortStr(100).min(1, "Section name is required"),
+  color: z.string().max(20).default("#3b82f6"),
   x: z.coerce.number().default(0),
   y: z.coerce.number().default(0),
-  width: z.coerce.number().positive().default(100),
-  height: z.coerce.number().positive().default(100),
+  width: z.coerce.number().positive().max(10000).default(100),
+  height: z.coerce.number().positive().max(10000).default(100),
 });
 
 export const updateSectionSchema = createSectionSchema.omit({ warehouse_id: true }).partial();
@@ -103,11 +105,11 @@ export const updateSectionSchema = createSectionSchema.omit({ warehouse_id: true
 
 export const exchangeRatesSchema = z.array(
   z.object({
-    from_currency: z.string().trim().min(1),
-    to_currency: z.string().trim().min(1),
+    from_currency: z.string().trim().min(1).max(10),
+    to_currency: z.string().trim().min(1).max(10),
     rate: z.coerce.number().positive("Rate must be positive"),
   }),
-);
+).max(50);
 
 // ── Middleware factory ──
 
