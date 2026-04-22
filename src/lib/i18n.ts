@@ -3,7 +3,8 @@ import { initReactI18next } from "react-i18next";
 import en from "../locales/en.json";
 import sq from "../locales/sq.json";
 
-const savedLang = (typeof localStorage !== "undefined" && localStorage.getItem("app_language")) || "en";
+let savedLang = "en";
+try { savedLang = globalThis.localStorage?.getItem("app_language") || "en"; } catch {}
 
 i18n.use(initReactI18next).init({
   resources: {
