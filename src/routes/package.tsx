@@ -7,7 +7,7 @@ import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-
 import { MoneyInput } from "@/components/money-input";
 import { formatMoney, formatDate, shortId, Currency } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download, Link2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 export const Route = createFileRoute("/package")({
@@ -272,6 +272,16 @@ function PackagesPage() {
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          const url = `${window.location.origin}/track/${encodeURIComponent(p.package_code)}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success("Tracking link copied");
+                        }}
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" onClick={() => setQrPkg(p)}>
                         <QrCode className="h-3.5 w-3.5" />
                       </Button>
