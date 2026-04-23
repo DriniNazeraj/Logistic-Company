@@ -202,7 +202,10 @@
     "packageCreated": "Paketa u krijua",
     "deleteConfirm": "Fshij kete pakete?",
     "productNameRequired": "Emri i produktit eshte i detyrueshem",
-    "clientNameRequired": "Emri i klientit eshte i detyrueshem"
+    "clientNameRequired": "Emri i klientit eshte i detyrueshem",
+    "deliveryDateRequired": "Data e dergimit eshte e detyrueshme",
+    "arrivalDateRequired": "Data e mberritjes eshte e detyrueshme",
+    "warehouseRequired": "Magazina eshte e detyrueshme"
   },
   "clients": {
     "title": "Klientet",

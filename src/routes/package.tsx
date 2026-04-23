@@ -473,6 +473,9 @@ function PackageForm({
     e.preventDefault();
     if (!name.trim()) return toast.error(t("package.productNameRequired"));
     if (!clientName.trim()) return toast.error(t("package.clientNameRequired"));
+    if (!delivery) return toast.error(t("package.deliveryDateRequired"));
+    if (!arrival) return toast.error(t("package.arrivalDateRequired"));
+    if (!warehouseId) return toast.error(t("package.warehouseRequired"));
     if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) return toast.error(t("login.invalidEmail"));
     setBusy(true);
     const payload = {
@@ -599,6 +602,7 @@ function PackageForm({
             type="date"
             value={delivery ?? ""}
             onChange={(e) => setDelivery(e.target.value)}
+            required
           />
         </Field>
         <Field label={t("package.arrivalDate")}>
@@ -606,6 +610,7 @@ function PackageForm({
             type="date"
             value={arrival ?? ""}
             onChange={(e) => setArrival(e.target.value)}
+            required
           />
         </Field>
       </div>
@@ -623,7 +628,7 @@ function PackageForm({
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("package.warehouse")}>
-          <Select value={warehouseId} onChange={(e) => onWarehouseChange(e.target.value)}>
+          <Select value={warehouseId} onChange={(e) => onWarehouseChange(e.target.value)} required>
             <option value="">{t("common.none")}</option>
             {warehouses.map((w) => (
               <option key={w.id} value={w.id}>

@@ -202,7 +202,10 @@
     "packageCreated": "Package created",
     "deleteConfirm": "Delete this package?",
     "productNameRequired": "Product name is required",
-    "clientNameRequired": "Client name is required"
+    "clientNameRequired": "Client name is required",
+    "deliveryDateRequired": "Delivery date is required",
+    "arrivalDateRequired": "Arrival date is required",
+    "warehouseRequired": "Warehouse is required"
   },
   "clients": {
     "title": "Clients",
