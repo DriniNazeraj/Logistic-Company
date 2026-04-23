@@ -279,7 +279,7 @@ function ClientForm({
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("common.phone")}>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+355 69..." />
+          <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9+\-() ]/g, ""))} placeholder="+355 69..." />
         </Field>
         <Field label={t("common.email")}>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" />

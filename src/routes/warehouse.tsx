@@ -256,7 +256,7 @@ function WarehousePage() {
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </Select>
-            <Button variant="secondary" onClick={addWarehouse}>
+            <Button variant="secondary" className="whitespace-nowrap" onClick={addWarehouse}>
               <Plus className="h-3.5 w-3.5" /> {t("warehouse.newWarehouse")}
             </Button>
             <Button variant="secondary" onClick={() => setSettingsOpen(true)}>

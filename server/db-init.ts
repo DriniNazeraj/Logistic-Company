@@ -111,6 +111,10 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_eur NUMERIC NOT NULL DE
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_usd NUMERIC NOT NULL DEFAULT 0;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_spent_all NUMERIC NOT NULL DEFAULT 0;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_packages INTEGER NOT NULL DEFAULT 0;
+
+-- Add payment tracking columns to packages (safe to re-run)
+ALTER TABLE packages ADD COLUMN IF NOT EXISTS amount_paid NUMERIC;
+ALTER TABLE packages ADD COLUMN IF NOT EXISTS amount_remaining NUMERIC;
 `;
 
 async function seedAdmin() {
