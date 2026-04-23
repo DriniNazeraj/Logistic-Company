@@ -577,7 +577,7 @@ function PackageForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("package.phoneNumber")}>
-          <Input type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value.replace(/[^0-9+\-() ]/g, ""))} placeholder="+355 69 123 4567" required />
+          <Input type="tel" inputMode="numeric" value={clientPhone} onKeyDown={(e) => { if (/[a-zA-Z]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} onChange={(e) => setClientPhone(e.target.value.replace(/[a-zA-Z]/g, ""))} placeholder="+355 69 123 4567" required />
         </Field>
         <Field label={t("common.email")} hint={t("package.emailOptional")}>
           <Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="client@example.com" />

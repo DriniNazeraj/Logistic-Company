@@ -40,7 +40,7 @@ function Index() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
   const overviewCurrency = (localStorage.getItem("overview_currency") as Currency) || "USD";
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -80,7 +80,7 @@ function Index() {
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        days.push({ day: d.toLocaleDateString("sq-AL", { weekday: "short" }), count: 0 });
+        days.push({ day: d.toLocaleDateString(i18n.language === "sq" ? "sq-AL" : "en-US", { weekday: "short" }), count: 0 });
       }
       allPkgs.forEach((r: any) => {
         const created = new Date(r.created_at);

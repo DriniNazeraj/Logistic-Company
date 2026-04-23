@@ -27,7 +27,7 @@ app.use(morgan("short"));
 
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:3001"];
+  : ["http://localhost:5173", "http://localhost:3001", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:8083", "http://localhost:8084"];
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 
 // Body parser with size limit
