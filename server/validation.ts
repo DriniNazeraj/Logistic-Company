@@ -46,7 +46,7 @@ export const createPackageSchema = z.object({
   product_name: shortStr(200).min(1, "Product name is required"),
   price: z.coerce.number().min(0).default(0),
   currency: currency,
-  payment_status: z.enum(["paid", "unpaid", "partial"]).default("paid"),
+  payment_status: z.enum(["paid", "on_delivery", "partly"]).default("paid"),
   amount_paid: z.coerce.number().min(0).optional(),
   amount_remaining: z.coerce.number().min(0).optional(),
   client_name: shortStr(200).optional(),
@@ -57,8 +57,8 @@ export const createPackageSchema = z.object({
   delivery_date: optionalDate,
   arrival_date: optionalDate,
   image_url: shortStr(2000).optional(),
-  cargo_id: shortStr(100).optional(),
-  section_id: shortStr(100).optional(),
+  cargo_id: shortStr(100).nullable().optional(),
+  section_id: shortStr(100).nullable().optional(),
 });
 
 export const updatePackageSchema = createPackageSchema.partial();
