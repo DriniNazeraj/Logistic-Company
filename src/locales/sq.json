@@ -205,7 +205,9 @@
     "clientNameRequired": "Emri i klientit eshte i detyrueshem",
     "deliveryDateRequired": "Data e dergimit eshte e detyrueshme",
     "arrivalDateRequired": "Data e mberritjes eshte e detyrueshme",
-    "warehouseRequired": "Magazina eshte e detyrueshme"
+    "warehouseRequired": "Magazina eshte e detyrueshme",
+    "arrivalBeforeDelivery": "Data e mbërritjes nuk mund të jetë para datës së dërgimit.",
+    "onlyImages": "Vetëm skedarë imazhi lejohen."
   },
   "clients": {
     "title": "Klientet",

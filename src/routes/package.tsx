@@ -458,6 +458,10 @@ function PackageForm({
   };
 
   const upload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error(t("package.onlyImages"));
+      return;
+    }
     setUploading(true);
     try {
       const url = await api.upload(file);
@@ -475,6 +479,7 @@ function PackageForm({
     if (!clientName.trim()) return toast.error(t("package.clientNameRequired"));
     if (!delivery) return toast.error(t("package.deliveryDateRequired"));
     if (!arrival) return toast.error(t("package.arrivalDateRequired"));
+    if (delivery && arrival && new Date(arrival) < new Date(delivery)) return toast.error(t("package.arrivalBeforeDelivery"));
     if (!warehouseId) return toast.error(t("package.warehouseRequired"));
     if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) return toast.error(t("login.invalidEmail"));
     setBusy(true);
@@ -601,7 +606,12 @@ function PackageForm({
           <Input
             type="date"
             value={delivery ?? ""}
-            onChange={(e) => setDelivery(e.target.value)}
+            onChange={(e) => {
+              setDelivery(e.target.value);
+              if (arrival && e.target.value && new Date(arrival) < new Date(e.target.value)) {
+                setArrival(e.target.value);
+              }
+            }}
             required
           />
         </Field>
@@ -609,6 +619,7 @@ function PackageForm({
           <Input
             type="date"
             value={arrival ?? ""}
+            min={delivery || undefined}
             onChange={(e) => setArrival(e.target.value)}
             required
           />
