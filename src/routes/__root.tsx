@@ -89,7 +89,7 @@ function AppShell() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useTranslation();
-  const isPublicRoute = location.pathname === "/login" || location.pathname.startsWith("/track/");
+  const isPublicRoute = location.pathname === "/login" || location.pathname.startsWith("/track/") || (location.pathname === "/" && !user);
 
   // Close mobile sidebar on route change
   useEffect(() => {
