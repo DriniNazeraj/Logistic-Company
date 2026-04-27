@@ -116,6 +116,17 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_packages INTEGER NOT NULL DEF
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS amount_paid NUMERIC;
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS amount_remaining NUMERIC;
 
+-- Scan activity log
+CREATE TABLE IF NOT EXISTS scan_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_name TEXT,
+  client_id_number TEXT,
+  package_code TEXT NOT NULL,
+  scanned_code TEXT NOT NULL,
+  result TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Drop any CHECK constraint on payment_status (Zod validates instead)
 DO $$
 DECLARE c TEXT;

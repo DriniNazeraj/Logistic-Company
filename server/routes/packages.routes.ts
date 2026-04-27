@@ -188,6 +188,13 @@ router.post("/confirm/:token", async (req, res) => {
       scanned_code === pkg.track_token ||
       scanned_code === pkg.package_code;
     if (!scannedMatches) {
+      // Log mismatch scan
+      const { rows: mismatchPkg } = await query("SELECT client_name, client_id_number FROM packages WHERE id = $1", [pkg.id]);
+      const mp = mismatchPkg[0];
+      await query(
+        "INSERT INTO scan_logs (client_name, client_id_number, package_code, scanned_code, result) VALUES ($1,$2,$3,$4,$5)",
+        [mp?.client_name, mp?.client_id_number, pkg.package_code, scanned_code, "mismatch"],
+      ).catch((err) => console.error("[scanLog:mismatch]", err));
       res.status(400).json({ message: "Scanned package does not match. This is not your package." });
       return;
     }
@@ -201,6 +208,12 @@ router.post("/confirm/:token", async (req, res) => {
       // Ensure client record is saved and spending is accumulated before deleting
       await upsertClientFromPackage(fullPkg[0]).catch((err) => console.error("[upsertClient:confirm]", err));
     }
+    // Log successful scan
+    const sp = fullPkg[0];
+    await query(
+      "INSERT INTO scan_logs (client_name, client_id_number, package_code, scanned_code, result) VALUES ($1,$2,$3,$4,$5)",
+      [sp?.client_name, sp?.client_id_number, pkg.package_code, scanned_code, "success"],
+    ).catch((err) => console.error("[scanLog:success]", err));
     // Delete the package from the database
     await query("DELETE FROM packages WHERE id = $1", [pkg.id]);
     res.json({ confirmed: true, confirmed_at: new Date().toISOString() });

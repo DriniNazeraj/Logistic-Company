@@ -6,6 +6,7 @@
     "packages": "Packages",
     "clients": "Clients",
     "warehouses": "Warehouses",
+    "history": "History",
     "settings": "Settings",
     "signOut": "Sign out",
     "lightMode": "Switch to light mode",
@@ -342,6 +343,22 @@
     "pending": "Pending",
     "inTransit": "In transit",
     "delivered": "Delivered"
+  },
+  "history": {
+    "title": "Scan History",
+    "description": "All package scan attempts from clients.",
+    "searchPlaceholder": "Search name, ID, package code...",
+    "allResults": "All results",
+    "success": "Success",
+    "mismatch": "Mismatch",
+    "clientName": "Client Name",
+    "clientId": "Client ID",
+    "packageCode": "Package Code",
+    "scannedCode": "Scanned Code",
+    "result": "Result",
+    "date": "Date",
+    "noHistory": "No scan history yet",
+    "noHistoryDescription": "Scan events will appear here when clients scan package QR codes."
   },
   "currency": {
     "euro": "Euro",

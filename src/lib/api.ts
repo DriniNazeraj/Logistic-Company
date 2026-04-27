@@ -89,6 +89,18 @@ export const api = {
       }),
   },
 
+  history: {
+    list: (params?: { page?: number; limit?: number; search?: string; result?: string }) => {
+      const p = params ?? {};
+      const qs = new URLSearchParams();
+      if (p.page) qs.set("page", String(p.page));
+      if (p.limit) qs.set("limit", String(p.limit));
+      if (p.search) qs.set("search", p.search);
+      if (p.result) qs.set("result", p.result);
+      return request<PaginatedResponse<any>>(`/history?${qs.toString()}`);
+    },
+  },
+
   warehouses: {
     list: () => request<any[]>("/warehouses"),
     getFirst: () => request<any | null>("/warehouses/first"),
