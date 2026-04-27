@@ -115,6 +115,19 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS total_packages INTEGER NOT NULL DEF
 -- Add payment tracking columns to packages (safe to re-run)
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS amount_paid NUMERIC;
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS amount_remaining NUMERIC;
+
+-- Drop any CHECK constraint on payment_status (Zod validates instead)
+DO $$
+DECLARE c TEXT;
+BEGIN
+  FOR c IN
+    SELECT con.conname FROM pg_constraint con
+    JOIN pg_attribute att ON att.attnum = ANY(con.conkey) AND att.attrelid = con.conrelid
+    WHERE con.conrelid = 'packages'::regclass AND att.attname = 'payment_status' AND con.contype = 'c'
+  LOOP
+    EXECUTE 'ALTER TABLE packages DROP CONSTRAINT ' || c;
+  END LOOP;
+END $$;
 `;
 
 async function seedAdmin() {
