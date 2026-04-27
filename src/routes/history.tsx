@@ -4,7 +4,6 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader, PageBody, EmptyState } from "@/components/layout-primitives";
 import { Input, Select } from "@/components/ui-kit";
-import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -134,7 +133,12 @@ function HistoryPage() {
                         {log.result === "success" ? t("history.success") : t("history.mismatch")}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{formatDate(log.created_at)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(log.created_at).toLocaleString("sq-AL", {
+                        day: "2-digit", month: "short", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
