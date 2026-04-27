@@ -246,8 +246,8 @@ function CargoForm({
   const [code, setCode] = useState(initial?.cargo_code ?? "");
   const [from, setFrom] = useState(initial?.departure_country ?? "USA");
   const [to, setTo] = useState(initial?.destination_country ?? "Albania");
-  const [dep, setDep] = useState(initial?.departure_date ?? "");
-  const [arr, setArr] = useState(initial?.arrival_date ?? "");
+  const [dep, setDep] = useState(initial?.departure_date?.slice(0, 10) ?? "");
+  const [arr, setArr] = useState(initial?.arrival_date?.slice(0, 10) ?? "");
   const [status, setStatus] = useState(initial?.status ?? "pending");
   const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "USD");
   const [busy, setBusy] = useState(false);

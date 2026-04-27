@@ -437,8 +437,8 @@ function PackageForm({
   const [clientEmail, setClientEmail] = useState(initial?.client_email ?? "");
   const [clientIdNumber, setClientIdNumber] = useState(initial?.client_id_number ?? "");
   const [dest, setDest] = useState(initial?.destination_location ?? "");
-  const [delivery, setDelivery] = useState(initial?.delivery_date ?? "");
-  const [arrival, setArrival] = useState(initial?.arrival_date ?? "");
+  const [delivery, setDelivery] = useState(initial?.delivery_date?.slice(0, 10) ?? "");
+  const [arrival, setArrival] = useState(initial?.arrival_date?.slice(0, 10) ?? "");
   const [cargoId, setCargoId] = useState(initial?.cargo_id ?? "");
   const [warehouseId, setWarehouseId] = useState(initialSection?.warehouse_id ?? "");
   const [sectionId, setSectionId] = useState(initial?.section_id ?? "");
