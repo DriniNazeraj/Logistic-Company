@@ -95,8 +95,15 @@ function TrackPage() {
         // Package has been deleted from DB after confirmation — clear details
         setPkg(null);
       }
-    } catch {
-      setScanResult("mismatch");
+    } catch (err: any) {
+      // If package was already deleted (404), treat as delivered
+      if (err.message === "Package not found") {
+        setScanResult("success");
+        setConfirmedAt(new Date().toISOString());
+        setPkg(null);
+      } else {
+        setScanResult("mismatch");
+      }
     }
     setConfirming(false);
   }, [code, confirming]);
@@ -110,8 +117,7 @@ function TrackPage() {
   }
 
   // Show delivered screen after successful confirmation or if package was already confirmed & deleted
-  if ((!pkg && scanResult === "success") || notFound) {
-    if (scanResult === "success" || scanResult === "already") {
+  if (scanResult === "success" || scanResult === "already") {
       return (
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
           <div className="max-w-md text-center space-y-4">
@@ -131,21 +137,9 @@ function TrackPage() {
           </div>
         </div>
       );
-    }
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <PackageIcon className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <h1 className="mt-4 text-xl font-semibold text-foreground">{t("track.packageNotFound")}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t("track.packageNotFoundDescription", { code })}
-          </p>
-        </div>
-      </div>
-    );
   }
 
-  if (!pkg) {
+  if (notFound || !pkg) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
@@ -166,7 +160,7 @@ function TrackPage() {
     delivered: "bg-green-500/20 text-green-400",
   }[cargo?.status ?? ""] ?? "bg-muted text-muted-foreground";
 
-  const isConfirmed = !!confirmedAt || scanResult === "success" || scanResult === "already";
+  const isConfirmed = !!confirmedAt;
 
   return (
     <div className="min-h-screen bg-background px-4 py-8">
