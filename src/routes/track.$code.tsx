@@ -44,10 +44,16 @@ interface CargoInfo {
   status: string;
 }
 
+interface SectionInfo {
+  section_name: string;
+  warehouse_name: string | null;
+}
+
 function TrackPage() {
   const { code } = Route.useParams();
   const [pkg, setPkg] = useState<TrackPkg | null>(null);
   const [cargo, setCargo] = useState<CargoInfo | null>(null);
+  const [section, setSection] = useState<SectionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const { t } = useTranslation();
@@ -71,6 +77,7 @@ function TrackPage() {
           setScanResult("already");
         }
         if (data.cargo) setCargo(data.cargo as CargoInfo);
+        if (data.section) setSection(data.section as SectionInfo);
       } catch {
         setNotFound(true);
       }
@@ -306,6 +313,19 @@ function TrackPage() {
                 <div className="text-xs text-muted-foreground">{t("track.cargoLabel")}</div>
                 <div className="font-mono text-xs">{cargo.cargo_code}</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Location in warehouse */}
+        {section && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("package.warehouse")}</h3>
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span>{section.warehouse_name ?? "—"}</span>
+              <span className="text-muted-foreground/50">→</span>
+              <span>{section.section_name}</span>
             </div>
           </div>
         )}

@@ -145,7 +145,17 @@ router.get("/track/:token", async (req, res) => {
       );
       cargo = rows[0] ?? null;
     }
-    res.json({ package: pkg, cargo });
+    let section = null;
+    if (pkg.section_id) {
+      const { rows } = await query(
+        `SELECT s.name AS section_name, w.name AS warehouse_name
+         FROM sections s LEFT JOIN warehouses w ON w.id = s.warehouse_id
+         WHERE s.id = $1`,
+        [pkg.section_id],
+      );
+      section = rows[0] ?? null;
+    }
+    res.json({ package: pkg, cargo, section });
   } catch (err: any) {
     console.error("[packages track]", err);
     res.status(500).json({ message: "Internal server error" });
