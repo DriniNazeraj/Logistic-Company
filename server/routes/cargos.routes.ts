@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
-import { createCargoSchema, updateCargoSchema, validate } from "../validation.js";
+import { createCargoSchema, updateCargoSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -66,7 +66,7 @@ router.post("/auto-transit", async (_req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", validateId, async (req, res) => {
   try {
     const { rows } = await query("SELECT * FROM cargos WHERE id = $1", [req.params.id]);
     res.json(rows[0] ?? null);
@@ -91,14 +91,25 @@ router.post("/", validate(createCargoSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updateCargoSchema), async (req, res) => {
+router.put("/:id", validateId, validate(updateCargoSchema), async (req, res) => {
   try {
-    const { cargo_code, departure_country, destination_country, departure_date, arrival_date, status, currency } = req.body;
+    const b = req.body;
+    const allowed = ["cargo_code", "departure_country", "destination_country", "departure_date", "arrival_date", "status", "currency"];
+    const sets: string[] = [];
+    const vals: any[] = [];
+    let i = 1;
+    for (const key of allowed) {
+      if (key in b) {
+        sets.push(`${key} = $${i++}`);
+        vals.push(b[key]);
+      }
+    }
+    if (sets.length === 0) { res.json({ ok: true }); return; }
+    sets.push(`updated_at = now()`);
+    vals.push(req.params.id);
     const { rows } = await query(
-      `UPDATE cargos SET cargo_code=$1, departure_country=$2, destination_country=$3,
-       departure_date=$4, arrival_date=$5, status=$6, currency=$7, updated_at=now()
-       WHERE id=$8 RETURNING *`,
-      [cargo_code, departure_country, destination_country, departure_date, arrival_date, status, currency, req.params.id],
+      `UPDATE cargos SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      vals,
     );
     res.json(rows[0] ?? null);
   } catch (err: any) {
@@ -107,7 +118,7 @@ router.put("/:id", validate(updateCargoSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateId, async (req, res) => {
   try {
     await query("DELETE FROM cargos WHERE id = $1", [req.params.id]);
     res.json({ ok: true });

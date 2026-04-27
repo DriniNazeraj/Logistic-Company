@@ -25,7 +25,7 @@ export const Route = createFileRoute("/package")({
   component: PackagesPage,
 });
 
-type PaymentStatus = "paid" | "on_delivery" | "partly";
+type PaymentStatus = "paid" | "unpaid" | "partial";
 
 interface Pkg {
   id: string;
@@ -235,10 +235,10 @@ function PackagesPage() {
                       <div className="flex justify-between gap-2">
                         <span>{t("package.payment")}</span>
                         <span className="truncate text-foreground">
-                          {{ paid: t("package.paid"), on_delivery: t("package.onDelivery"), partly: t("package.partly") }[p.payment_status] ?? "—"}
+                          {{ paid: t("package.paid"), unpaid: t("package.onDelivery"), partial: t("package.partly") }[p.payment_status] ?? "—"}
                         </span>
                       </div>
-                      {p.payment_status === "partly" && (
+                      {p.payment_status === "partial" && (
                         <>
                           <div className="flex justify-between gap-2">
                             <span>{t("package.paid")}</span>
@@ -339,7 +339,7 @@ function PackagesPage() {
 function PackageQR({ pkg }: { pkg: Pkg }) {
   const qrRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
-  const paymentLabel = { paid: t("package.paid"), on_delivery: t("package.onDelivery"), partly: t("package.partly") }[pkg.payment_status] ?? "—";
+  const paymentLabel = { paid: t("package.paid"), unpaid: t("package.onDelivery"), partial: t("package.partly") }[pkg.payment_status] ?? "—";
 
   const trackUrl = `${window.location.origin}/track/${pkg.track_token}`;
 
@@ -426,7 +426,10 @@ function PackageForm({
   const [name, setName] = useState(initial?.product_name ?? "");
   const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [currency, setCurrency] = useState<Currency>((initial?.currency as Currency) ?? "USD");
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>((initial?.payment_status as PaymentStatus) ?? "paid");
+  const validStatuses: PaymentStatus[] = ["paid", "unpaid", "partial"];
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
+    validStatuses.includes(initial?.payment_status as PaymentStatus) ? (initial!.payment_status as PaymentStatus) : "paid"
+  );
   const [amountPaid, setAmountPaid] = useState(String(initial?.amount_paid ?? ""));
   const [amountRemaining, setAmountRemaining] = useState(String(initial?.amount_remaining ?? ""));
   const [clientName, setClientName] = useState(initial?.client_name ?? "");
@@ -489,8 +492,8 @@ function PackageForm({
       price: Number(price) || 0,
       currency,
       payment_status: paymentStatus,
-      amount_paid: paymentStatus === "partly" ? Number(amountPaid) || 0 : undefined,
-      amount_remaining: paymentStatus === "partly" ? Number(amountRemaining) || 0 : undefined,
+      amount_paid: paymentStatus === "partial" ? Number(amountPaid) || 0 : undefined,
+      amount_remaining: paymentStatus === "partial" ? Number(amountRemaining) || 0 : undefined,
       client_name: clientName || undefined,
       client_phone: clientPhone || undefined,
       client_email: clientEmail || undefined,
@@ -534,11 +537,11 @@ function PackageForm({
       <Field label={t("package.paymentStatus")}>
         <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}>
           <option value="paid">{t("package.paid")}</option>
-          <option value="on_delivery">{t("package.onDelivery")}</option>
-          <option value="partly">{t("package.partly")}</option>
+          <option value="unpaid">{t("package.onDelivery")}</option>
+          <option value="partial">{t("package.partly")}</option>
         </Select>
       </Field>
-      {paymentStatus === "partly" && (
+      {paymentStatus === "partial" && (
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("package.amountPaid")}>
             <Input

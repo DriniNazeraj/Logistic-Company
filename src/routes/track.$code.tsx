@@ -159,7 +159,7 @@ function TrackPage() {
     );
   }
 
-  const paymentLabel = { paid: t("track.paidStatus"), on_delivery: t("track.onDeliveryStatus"), partly: t("track.partlyPaidStatus") }[pkg.payment_status] ?? pkg.payment_status;
+  const paymentLabel = { paid: t("track.paidStatus"), unpaid: t("track.onDeliveryStatus"), partial: t("track.partlyPaidStatus") }[pkg.payment_status] ?? pkg.payment_status;
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-400",
     in_transit: "bg-blue-500/20 text-blue-400",
@@ -344,7 +344,7 @@ function TrackPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <span>{paymentLabel}</span>
           </div>
-          {pkg.payment_status === "partly" && (
+          {pkg.payment_status === "partial" && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <div className="text-xs text-muted-foreground">{t("track.paidAmount")}</div>

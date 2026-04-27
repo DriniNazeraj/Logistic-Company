@@ -102,6 +102,7 @@ function WarehousePage() {
 
     // Pick which warehouse to show
     const w = (selectId ? list.find((x) => x.id === selectId) : null) ?? list[0];
+    if (!w) { setBusy(false); return; }
 
     const [ss, ps] = await Promise.all([
       api.sections.list(w.id),
@@ -580,7 +581,7 @@ function WarehousePage() {
         onClose={() => setSettingsOpen(false)}
         title={t("warehouse.warehouseSettings")}
       >
-        <WarehouseSettingsForm
+        {warehouse && <WarehouseSettingsForm
           warehouse={warehouse}
           canDelete={allWarehouses.length > 1}
           onSaved={(updated) => {
@@ -592,7 +593,7 @@ function WarehousePage() {
             setSettingsOpen(false);
             load();
           }}
-        />
+        />}
       </Modal>
 
       <Modal

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
-import { createClientSchema, updateClientSchema, validate } from "../validation.js";
+import { createClientSchema, updateClientSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
 
@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get single client with their packages
-router.get("/:id", async (req, res) => {
+router.get("/:id", validateId, async (req, res) => {
   try {
     const { rows: clients } = await query("SELECT * FROM clients WHERE id = $1", [req.params.id]);
     if (clients.length === 0) {
@@ -74,7 +74,7 @@ router.post("/", validate(createClientSchema), async (req, res) => {
 });
 
 // Update client
-router.put("/:id", validate(updateClientSchema), async (req, res) => {
+router.put("/:id", validateId, validate(updateClientSchema), async (req, res) => {
   try {
     const b = req.body;
     const allowed = ["name", "phone", "email", "id_number", "address", "notes"];
@@ -109,7 +109,7 @@ router.put("/:id", validate(updateClientSchema), async (req, res) => {
 });
 
 // Delete client
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateId, async (req, res) => {
   try {
     await query("DELETE FROM clients WHERE id = $1", [req.params.id]);
     res.json({ ok: true });

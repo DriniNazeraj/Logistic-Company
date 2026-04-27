@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
-import { createPackageSchema, updatePackageSchema, validate } from "../validation.js";
+import { createPackageSchema, updatePackageSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
 
@@ -156,7 +156,9 @@ router.get("/track/:token", async (req, res) => {
 // Client scans QR on the physical box; the scanned token must match the package's track_token.
 router.post("/confirm/:token", async (req, res) => {
   try {
-    const { scanned_code } = req.body;
+    const scanned_code = typeof req.body?.scanned_code === "string"
+      ? req.body.scanned_code.trim().slice(0, 500)
+      : null;
     if (!scanned_code) {
       res.status(400).json({ message: "No scanned code provided" });
       return;
@@ -187,7 +189,7 @@ router.post("/confirm/:token", async (req, res) => {
     const { rows: fullPkg } = await query("SELECT * FROM packages WHERE id = $1", [pkg.id]);
     if (fullPkg.length > 0) {
       // Ensure client record is saved and spending is accumulated before deleting
-      await upsertClientFromPackage(fullPkg[0]).catch(() => {});
+      await upsertClientFromPackage(fullPkg[0]).catch((err) => console.error("[upsertClient:confirm]", err));
     }
     // Delete the package from the database
     await query("DELETE FROM packages WHERE id = $1", [pkg.id]);
@@ -264,8 +266,8 @@ router.post("/", validate(createPackageSchema), async (req, res) => {
       ],
     );
     // Auto-create/update client from package info, then add spending
-    await upsertClientFromPackage(b).catch(() => {});
-    await addSpendingToClient(rows[0]).catch(() => {});
+    await upsertClientFromPackage(b).catch((err) => console.error("[upsertClient:create]", err));
+    await addSpendingToClient(rows[0]).catch((err) => console.error("[addSpending:create]", err));
     res.json(rows[0]);
   } catch (err: any) {
     console.error("[packages]", err);
@@ -273,7 +275,7 @@ router.post("/", validate(createPackageSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updatePackageSchema), async (req, res) => {
+router.put("/:id", validateId, validate(updatePackageSchema), async (req, res) => {
   try {
     const b = req.body;
 
@@ -314,7 +316,7 @@ router.put("/:id", validate(updatePackageSchema), async (req, res) => {
 
     const updated = rows[0];
     // Auto-create/update client from package info
-    if (b.client_name) await upsertClientFromPackage(b).catch(() => {});
+    if (b.client_name) await upsertClientFromPackage(b).catch((err) => console.error("[upsertClient:update]", err));
 
     // Recalculate client spending if price or currency changed
     const priceChanged = "price" in b && parseFloat(b.price) !== (parseFloat(oldPkg.price) || 0);
@@ -322,7 +324,7 @@ router.put("/:id", validate(updatePackageSchema), async (req, res) => {
     if (priceChanged || currencyChanged) {
       const newPrice = parseFloat(updated.price) || 0;
       const newCurrency = (updated.currency || "EUR").toUpperCase();
-      await adjustClientSpending(oldPkg, newPrice, newCurrency).catch(() => {});
+      await adjustClientSpending(oldPkg, newPrice, newCurrency).catch((err) => console.error("[adjustSpending:update]", err));
     }
 
     res.json(updated);
@@ -332,7 +334,7 @@ router.put("/:id", validate(updatePackageSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateId, async (req, res) => {
   try {
     await query("DELETE FROM packages WHERE id = $1", [req.params.id]);
     res.json({ ok: true });

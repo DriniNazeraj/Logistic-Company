@@ -348,8 +348,8 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
 
   const paymentColor: Record<string, string> = {
     paid: "bg-success/15 text-success border-success/30",
-    on_delivery: "bg-warning/15 text-warning border-warning/30",
-    partly: "bg-accent/15 text-accent border-accent/30",
+    unpaid: "bg-warning/15 text-warning border-warning/30",
+    partial: "bg-accent/15 text-accent border-accent/30",
   };
 
   return (
@@ -439,7 +439,7 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
                             (paymentColor[p.payment_status] ?? "bg-muted text-muted-foreground border-border")
                           }
                         >
-                          {{ paid: t("clients.paid"), on_delivery: t("clients.onDelivery"), partly: t("clients.partly") }[p.payment_status] ?? p.payment_status}
+                          {{ paid: t("clients.paid"), unpaid: t("clients.onDelivery"), partial: t("clients.partly") }[p.payment_status] ?? p.payment_status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{formatDate(p.created_at)}</td>
