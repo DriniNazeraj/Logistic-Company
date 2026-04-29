@@ -3,6 +3,7 @@ import { useState, FormEvent, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Truck } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
@@ -56,9 +57,7 @@ function LoginPage() {
         <div className="grid-bg absolute inset-0 opacity-40" />
         <div className="relative flex h-full flex-col justify-between p-10">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
-              <Truck className="h-4 w-4" />
-            </div>
+            <img src={logo} alt="Transport Square" className="h-10 w-10" />
             <span className="font-mono text-sm font-semibold">transport.square.al</span>
           </div>
           <div className="space-y-3">

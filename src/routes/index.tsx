@@ -12,6 +12,8 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { SkeletonStatsCard, SkeletonChart } from "@/components/skeleton";
+import heroShip from "@/assets/hero-ship.png";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,16 +87,16 @@ function LandingPage() {
       {/* NAV */}
       <nav className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="text-xl font-bold tracking-tight">Transport Square</div>
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="Transport Square" className="h-10 w-10" />
+            <span className="text-xl font-bold tracking-tight">Transport Square</span>
+          </div>
           <div className="hidden items-center gap-8 md:flex">
-            {["Services", "Why Us", "FAQ", "Contact"].map((item) => (
+            {["Services", "Why Us", "FAQ"].map((item) => (
               <button key={item} onClick={() => scrollTo(item.toLowerCase().replace(" ", "-"))} className="text-sm text-neutral-600 transition-colors hover:text-neutral-900">
                 {item}
               </button>
             ))}
-            <Link to="/track/demo" className="text-sm text-neutral-600 transition-colors hover:text-neutral-900">
-              Track Package
-            </Link>
             <button onClick={() => scrollTo("contact")} className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800">
               Contact Us
             </button>
@@ -106,14 +108,11 @@ function LandingPage() {
         {mobileNav && (
           <div className="border-t border-neutral-200 bg-white px-6 py-4 md:hidden">
             <div className="flex flex-col gap-3">
-              {["Services", "Why Us", "FAQ", "Contact"].map((item) => (
+              {["Services", "Why Us", "FAQ"].map((item) => (
                 <button key={item} onClick={() => scrollTo(item.toLowerCase().replace(" ", "-"))} className="text-left text-sm text-neutral-600 hover:text-neutral-900">
                   {item}
                 </button>
               ))}
-              <Link to="/track/demo" className="text-sm text-neutral-600 hover:text-neutral-900" onClick={() => setMobileNav(false)}>
-                Track Package
-              </Link>
             </div>
           </div>
         )}
@@ -121,8 +120,9 @@ function LandingPage() {
 
       {/* HERO */}
       <section className="relative overflow-hidden bg-neutral-100">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-32">
-          <div className="max-w-2xl">
+        <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-32">
+          <img src={heroShip} alt="" className="pointer-events-none absolute right-0 top-1/2 w-[55%] max-w-2xl -translate-y-1/2 object-contain opacity-20 md:opacity-30" />
+          <div className="relative z-10 max-w-2xl">
             <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-6xl">
               Cargo Shipping<br />
               From USA to<br />
@@ -258,7 +258,10 @@ function LandingPage() {
       <footer className="border-t border-neutral-200 bg-white py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
           <div>
-            <div className="text-lg font-bold tracking-tight">Transport Square</div>
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="Transport Square" className="h-9 w-9" />
+              <span className="text-lg font-bold tracking-tight">Transport Square</span>
+            </div>
             <p className="mt-1 text-xs text-neutral-500">Reliable cargo shipping from USA to Albania.</p>
           </div>
           <div className="flex items-center gap-6 text-sm text-neutral-500">

@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
 
 import appCss from "../styles.css?url";
+import logo from "@/assets/logo.png";
 
 function NotFoundComponent() {
   const { t } = useTranslation();
@@ -52,7 +53,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
-        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1' y='3' width='15' height='13' rx='2'/%3E%3Cpath d='M16 8h4l3 5v5h-7V8z'/%3E%3Ccircle cx='5.5' cy='18.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3C/svg%3E" />
+        <link rel="icon" type="image/png" href={logo} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -122,9 +123,7 @@ function AppShell() {
   const sidebarContent = (
     <>
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
-          <Truck className="h-4 w-4" />
-        </div>
+        <img src={logo} alt="Transport Square" className="h-9 w-9" />
         <div className="font-mono text-sm font-semibold tracking-tight">transport.square.al</div>
         {/* Close button for mobile */}
         <button
