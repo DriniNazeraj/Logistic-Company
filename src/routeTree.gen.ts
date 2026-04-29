@@ -13,6 +13,7 @@ import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PackageRouteImport } from './routes/package'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as CargoRouteImport } from './routes/cargo'
 import { Route as CalendarRouteImport } from './routes/calendar'
@@ -38,6 +39,11 @@ const PackageRoute = PackageRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsRoute = ClientsRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/cargo': typeof CargoRouteWithChildren
   '/clients': typeof ClientsRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/cargo': typeof CargoRouteWithChildren
   '/clients': typeof ClientsRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/cargo': typeof CargoRouteWithChildren
   '/clients': typeof ClientsRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/cargo'
     | '/clients'
+    | '/history'
     | '/login'
     | '/package'
     | '/settings'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/cargo'
     | '/clients'
+    | '/history'
     | '/login'
     | '/package'
     | '/settings'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/cargo'
     | '/clients'
+    | '/history'
     | '/login'
     | '/package'
     | '/settings'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   CargoRoute: typeof CargoRouteWithChildren
   ClientsRoute: typeof ClientsRoute
+  HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
   PackageRoute: typeof PackageRoute
   SettingsRoute: typeof SettingsRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients': {
@@ -249,6 +269,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   CargoRoute: CargoRouteWithChildren,
   ClientsRoute: ClientsRoute,
+  HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
   PackageRoute: PackageRoute,
   SettingsRoute: SettingsRoute,
@@ -258,12 +279,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
-import { createWarehouseSchema, updateWarehouseSchema, validate } from "../validation.js";
+import { createWarehouseSchema, updateWarehouseSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -41,13 +41,25 @@ router.post("/", validate(createWarehouseSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updateWarehouseSchema), async (req, res) => {
+router.put("/:id", validateId, validate(updateWarehouseSchema), async (req, res) => {
   try {
-    const { name, location, canvas_width, canvas_height } = req.body;
+    const b = req.body;
+    const allowed = ["name", "location", "canvas_width", "canvas_height"];
+    const sets: string[] = [];
+    const vals: any[] = [];
+    let i = 1;
+    for (const key of allowed) {
+      if (key in b) {
+        sets.push(`${key} = $${i++}`);
+        vals.push(b[key]);
+      }
+    }
+    if (sets.length === 0) { res.json({ ok: true }); return; }
+    sets.push(`updated_at = now()`);
+    vals.push(req.params.id);
     const { rows } = await query(
-      `UPDATE warehouses SET name=$1, location=$2, canvas_width=$3, canvas_height=$4, updated_at=now()
-       WHERE id=$5 RETURNING *`,
-      [name, location, canvas_width, canvas_height, req.params.id],
+      `UPDATE warehouses SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      vals,
     );
     res.json(rows[0] ?? null);
   } catch (err: any) {
@@ -56,7 +68,7 @@ router.put("/:id", validate(updateWarehouseSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateId, async (req, res) => {
   try {
     await query("DELETE FROM warehouses WHERE id = $1", [req.params.id]);
     res.json({ ok: true });

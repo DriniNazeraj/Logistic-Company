@@ -37,8 +37,7 @@ router.post("/", upload.single("file"), (req, res) => {
     res.status(400).json({ message: "No file uploaded" });
     return;
   }
-  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
-  const url = `${baseUrl}/uploads/${req.file.filename}`;
+  const url = `/uploads/${req.file.filename}`;
   res.json({ url });
 });
 

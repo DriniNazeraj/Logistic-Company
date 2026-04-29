@@ -44,10 +44,16 @@ interface CargoInfo {
   status: string;
 }
 
+interface SectionInfo {
+  section_name: string;
+  warehouse_name: string | null;
+}
+
 function TrackPage() {
   const { code } = Route.useParams();
   const [pkg, setPkg] = useState<TrackPkg | null>(null);
   const [cargo, setCargo] = useState<CargoInfo | null>(null);
+  const [section, setSection] = useState<SectionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const { t } = useTranslation();
@@ -71,6 +77,7 @@ function TrackPage() {
           setScanResult("already");
         }
         if (data.cargo) setCargo(data.cargo as CargoInfo);
+        if (data.section) setSection(data.section as SectionInfo);
       } catch {
         setNotFound(true);
       }
@@ -95,8 +102,15 @@ function TrackPage() {
         // Package has been deleted from DB after confirmation — clear details
         setPkg(null);
       }
-    } catch {
-      setScanResult("mismatch");
+    } catch (err: any) {
+      // If package was already deleted (404), treat as delivered
+      if (err.message === "Package not found") {
+        setScanResult("success");
+        setConfirmedAt(new Date().toISOString());
+        setPkg(null);
+      } else {
+        setScanResult("mismatch");
+      }
     }
     setConfirming(false);
   }, [code, confirming]);
@@ -110,8 +124,7 @@ function TrackPage() {
   }
 
   // Show delivered screen after successful confirmation or if package was already confirmed & deleted
-  if ((!pkg && scanResult === "success") || notFound) {
-    if (scanResult === "success" || scanResult === "already") {
+  if (scanResult === "success" || scanResult === "already") {
       return (
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
           <div className="max-w-md text-center space-y-4">
@@ -131,7 +144,9 @@ function TrackPage() {
           </div>
         </div>
       );
-    }
+  }
+
+  if (notFound || !pkg) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
@@ -145,28 +160,14 @@ function TrackPage() {
     );
   }
 
-  if (!pkg) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <PackageIcon className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <h1 className="mt-4 text-xl font-semibold text-foreground">{t("track.packageNotFound")}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t("track.packageNotFoundDescription", { code })}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const paymentLabel = { paid: t("track.paidStatus"), on_delivery: t("track.onDeliveryStatus"), partly: t("track.partlyPaidStatus") }[pkg.payment_status] ?? pkg.payment_status;
+  const paymentLabel = { paid: t("track.paidStatus"), unpaid: t("track.onDeliveryStatus"), partial: t("track.partlyPaidStatus") }[pkg.payment_status] ?? pkg.payment_status;
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-400",
     in_transit: "bg-blue-500/20 text-blue-400",
     delivered: "bg-green-500/20 text-green-400",
   }[cargo?.status ?? ""] ?? "bg-muted text-muted-foreground";
 
-  const isConfirmed = !!confirmedAt || scanResult === "success" || scanResult === "already";
+  const isConfirmed = !!confirmedAt;
 
   return (
     <div className="min-h-screen bg-background px-4 py-8">
@@ -316,6 +317,19 @@ function TrackPage() {
           </div>
         )}
 
+        {/* Location in warehouse */}
+        {section && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("package.warehouse")}</h3>
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span>{section.warehouse_name ?? "—"}</span>
+              <span className="text-muted-foreground/50">→</span>
+              <span>{section.section_name}</span>
+            </div>
+          </div>
+        )}
+
         {/* Dates */}
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("track.dates")}</h3>
@@ -344,7 +358,7 @@ function TrackPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <span>{paymentLabel}</span>
           </div>
-          {pkg.payment_status === "partly" && (
+          {pkg.payment_status === "partial" && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <div className="text-xs text-muted-foreground">{t("track.paidAmount")}</div>

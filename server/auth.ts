@@ -60,5 +60,6 @@ export async function createUser(email: string, password: string): Promise<AuthU
     "INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email",
     [email, hash],
   );
+  if (!rows[0]) throw new Error("Failed to create user");
   return rows[0];
 }

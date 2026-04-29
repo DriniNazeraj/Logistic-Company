@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
-import { createSectionSchema, updateSectionSchema, validate } from "../validation.js";
+import { createSectionSchema, updateSectionSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -67,13 +67,25 @@ router.post("/", validate(createSectionSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updateSectionSchema), async (req, res) => {
+router.put("/:id", validateId, validate(updateSectionSchema), async (req, res) => {
   try {
-    const { name, color, x, y, width, height } = req.body;
+    const b = req.body;
+    const allowed = ["name", "color", "x", "y", "width", "height"];
+    const sets: string[] = [];
+    const vals: any[] = [];
+    let i = 1;
+    for (const key of allowed) {
+      if (key in b) {
+        sets.push(`${key} = $${i++}`);
+        vals.push(b[key]);
+      }
+    }
+    if (sets.length === 0) { res.json({ ok: true }); return; }
+    sets.push(`updated_at = now()`);
+    vals.push(req.params.id);
     const { rows } = await query(
-      `UPDATE sections SET name=$1, color=$2, x=$3, y=$4, width=$5, height=$6, updated_at=now()
-       WHERE id=$7 RETURNING *`,
-      [name, color, x, y, width, height, req.params.id],
+      `UPDATE sections SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      vals,
     );
     res.json(rows[0] ?? null);
   } catch (err: any) {
@@ -82,7 +94,7 @@ router.put("/:id", validate(updateSectionSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateId, async (req, res) => {
   try {
     await query("DELETE FROM sections WHERE id = $1", [req.params.id]);
     res.json({ ok: true });

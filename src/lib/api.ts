@@ -81,12 +81,24 @@ export const api = {
     create: (data: any) => request<any>("/packages", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/packages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/packages/${id}`, { method: "DELETE" }),
-    track: (code: string) => request<{ package: any; cargo: any | null }>(`/packages/track/${encodeURIComponent(code)}`),
+    track: (code: string) => request<{ package: any; cargo: any | null; section: any | null }>(`/packages/track/${encodeURIComponent(code)}`),
     confirm: (code: string, scannedCode: string) =>
       request<{ confirmed?: boolean; already?: boolean; confirmed_at: string }>(`/packages/confirm/${encodeURIComponent(code)}`, {
         method: "POST",
         body: JSON.stringify({ scanned_code: scannedCode }),
       }),
+  },
+
+  history: {
+    list: (params?: { page?: number; limit?: number; search?: string; result?: string }) => {
+      const p = params ?? {};
+      const qs = new URLSearchParams();
+      if (p.page) qs.set("page", String(p.page));
+      if (p.limit) qs.set("limit", String(p.limit));
+      if (p.search) qs.set("search", p.search);
+      if (p.result) qs.set("result", p.result);
+      return request<PaginatedResponse<any>>(`/history?${qs.toString()}`);
+    },
   },
 
   warehouses: {

@@ -31,8 +31,8 @@ export const createCargoSchema = z.object({
   cargo_code: shortStr(50).min(1, "Cargo code is required"),
   departure_country: shortStr(100).min(1, "Departure country is required"),
   destination_country: shortStr(100).min(1, "Destination country is required"),
-  departure_date: optionalDate,
-  arrival_date: optionalDate,
+  departure_date: optionalDate.or(z.null().transform(() => undefined)),
+  arrival_date: optionalDate.or(z.null().transform(() => undefined)),
   status: z.enum(["pending", "in_transit", "delivered"]).default("pending"),
   currency: currency,
 });
@@ -46,19 +46,19 @@ export const createPackageSchema = z.object({
   product_name: shortStr(200).min(1, "Product name is required"),
   price: z.coerce.number().min(0).default(0),
   currency: currency,
-  payment_status: z.enum(["paid", "on_delivery", "partly"]).default("paid"),
+  payment_status: z.enum(["paid", "unpaid", "partial"]).default("paid"),
   amount_paid: z.coerce.number().min(0).optional(),
   amount_remaining: z.coerce.number().min(0).optional(),
-  client_name: shortStr(200).optional(),
-  client_phone: shortStr(50).optional(),
-  client_email: z.string().trim().max(254).email().optional().or(z.literal("")),
-  client_id_number: shortStr(50).optional(),
-  destination_location: shortStr(500).optional(),
-  delivery_date: optionalDate,
-  arrival_date: optionalDate,
-  image_url: shortStr(2000).optional(),
-  cargo_id: shortStr(100).nullable().optional(),
-  section_id: shortStr(100).nullable().optional(),
+  client_name: shortStr(200).nullable().optional().transform(v => v ?? undefined),
+  client_phone: shortStr(50).nullable().optional().transform(v => v ?? undefined),
+  client_email: z.string().trim().max(254).email().optional().or(z.literal("")).or(z.null().transform(() => undefined)),
+  client_id_number: shortStr(50).nullable().optional().transform(v => v ?? undefined),
+  destination_location: shortStr(500).nullable().optional().transform(v => v ?? undefined),
+  delivery_date: optionalDate.or(z.null().transform(() => undefined)),
+  arrival_date: optionalDate.or(z.null().transform(() => undefined)),
+  image_url: shortStr(2000).nullable().optional().transform(v => v ?? undefined),
+  cargo_id: z.string().uuid().nullable().optional(),
+  section_id: z.string().uuid().nullable().optional(),
 });
 
 export const updatePackageSchema = createPackageSchema.partial();
@@ -67,11 +67,11 @@ export const updatePackageSchema = createPackageSchema.partial();
 
 export const createClientSchema = z.object({
   name: shortStr(200).min(1, "Client name is required"),
-  phone: shortStr(50).optional(),
-  email: z.string().trim().max(254).email().optional().or(z.literal("")),
-  id_number: shortStr(50).optional(),
-  address: shortStr(500).optional(),
-  notes: z.string().trim().max(5000).optional(),
+  phone: shortStr(50).nullable().optional().transform(v => v ?? undefined),
+  email: z.string().trim().max(254).email().optional().or(z.literal("")).or(z.null().transform(() => undefined)),
+  id_number: shortStr(50).nullable().optional().transform(v => v ?? undefined),
+  address: shortStr(500).nullable().optional().transform(v => v ?? undefined),
+  notes: z.string().trim().max(5000).nullable().optional().transform(v => v ?? undefined),
 });
 
 export const updateClientSchema = createClientSchema.partial();
@@ -80,7 +80,7 @@ export const updateClientSchema = createClientSchema.partial();
 
 export const createWarehouseSchema = z.object({
   name: shortStr(200).min(1, "Warehouse name is required"),
-  location: shortStr(500).optional(),
+  location: shortStr(500).nullable().optional().transform(v => v ?? undefined),
   canvas_width: z.coerce.number().int().positive().max(10000).default(800),
   canvas_height: z.coerce.number().int().positive().max(10000).default(600),
 });
@@ -124,4 +124,14 @@ export function validate(schema: z.ZodSchema) {
     req.body = result.data;
     next();
   };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function validateId(req: Request, res: Response, next: NextFunction) {
+  if (!UUID_RE.test(req.params.id)) {
+    res.status(400).json({ message: "Invalid ID format" });
+    return;
+  }
+  next();
 }

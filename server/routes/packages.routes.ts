@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
-import { createPackageSchema, updatePackageSchema, validate } from "../validation.js";
+import { createPackageSchema, updatePackageSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
 
@@ -77,6 +77,52 @@ async function addSpendingToClient(pkg: any) {
   );
 }
 
+/**
+ * When a package's price or currency changes, subtract the old spending and add the new.
+ * Uses the old package data (before update) and the new values.
+ */
+async function adjustClientSpending(oldPkg: any, newPrice: number, newCurrency: string) {
+  const idNum = oldPkg.client_id_number?.trim() || null;
+  const email = oldPkg.client_email?.trim() || null;
+
+  const conditions: string[] = [];
+  const condVals: any[] = [];
+  let idx = 1;
+  if (idNum) { conditions.push(`id_number = $${idx++}`); condVals.push(idNum); }
+  if (email) { conditions.push(`(email = $${idx++} AND email IS NOT NULL AND email <> '')`); condVals.push(email); }
+  if (conditions.length === 0) return;
+
+  const where = conditions.join(" OR ");
+
+  // Subtract old spending
+  const oldPrice = parseFloat(oldPkg.price) || 0;
+  const oldCurrency = (oldPkg.currency || "EUR").toUpperCase();
+  const oldCol =
+    oldCurrency === "EUR" ? "total_spent_eur" :
+    oldCurrency === "USD" ? "total_spent_usd" :
+    oldCurrency === "ALL" ? "total_spent_all" : null;
+
+  if (oldCol && oldPrice > 0) {
+    await query(
+      `UPDATE clients SET ${oldCol} = GREATEST(${oldCol} - $${idx}, 0), updated_at = now() WHERE ${where}`,
+      [...condVals, oldPrice],
+    );
+  }
+
+  // Add new spending
+  const newCol =
+    newCurrency === "EUR" ? "total_spent_eur" :
+    newCurrency === "USD" ? "total_spent_usd" :
+    newCurrency === "ALL" ? "total_spent_all" : null;
+
+  if (newCol && newPrice > 0) {
+    await query(
+      `UPDATE clients SET ${newCol} = ${newCol} + $${idx}, updated_at = now() WHERE ${where}`,
+      [...condVals, newPrice],
+    );
+  }
+}
+
 // Public tracking endpoint (no auth) — looks up by track_token (secure) or package_code (legacy)
 router.get("/track/:token", async (req, res) => {
   try {
@@ -99,7 +145,17 @@ router.get("/track/:token", async (req, res) => {
       );
       cargo = rows[0] ?? null;
     }
-    res.json({ package: pkg, cargo });
+    let section = null;
+    if (pkg.section_id) {
+      const { rows } = await query(
+        `SELECT s.name AS section_name, w.name AS warehouse_name
+         FROM sections s LEFT JOIN warehouses w ON w.id = s.warehouse_id
+         WHERE s.id = $1`,
+        [pkg.section_id],
+      );
+      section = rows[0] ?? null;
+    }
+    res.json({ package: pkg, cargo, section });
   } catch (err: any) {
     console.error("[packages track]", err);
     res.status(500).json({ message: "Internal server error" });
@@ -110,7 +166,9 @@ router.get("/track/:token", async (req, res) => {
 // Client scans QR on the physical box; the scanned token must match the package's track_token.
 router.post("/confirm/:token", async (req, res) => {
   try {
-    const { scanned_code } = req.body;
+    const scanned_code = typeof req.body?.scanned_code === "string"
+      ? req.body.scanned_code.trim().slice(0, 500)
+      : null;
     if (!scanned_code) {
       res.status(400).json({ message: "No scanned code provided" });
       return;
@@ -130,6 +188,13 @@ router.post("/confirm/:token", async (req, res) => {
       scanned_code === pkg.track_token ||
       scanned_code === pkg.package_code;
     if (!scannedMatches) {
+      // Log mismatch scan
+      const { rows: mismatchPkg } = await query("SELECT client_name, client_id_number FROM packages WHERE id = $1", [pkg.id]);
+      const mp = mismatchPkg[0];
+      await query(
+        "INSERT INTO scan_logs (client_name, client_id_number, package_code, scanned_code, result) VALUES ($1,$2,$3,$4,$5)",
+        [mp?.client_name, mp?.client_id_number, pkg.package_code, scanned_code, "mismatch"],
+      ).catch((err) => console.error("[scanLog:mismatch]", err));
       res.status(400).json({ message: "Scanned package does not match. This is not your package." });
       return;
     }
@@ -141,8 +206,14 @@ router.post("/confirm/:token", async (req, res) => {
     const { rows: fullPkg } = await query("SELECT * FROM packages WHERE id = $1", [pkg.id]);
     if (fullPkg.length > 0) {
       // Ensure client record is saved and spending is accumulated before deleting
-      await upsertClientFromPackage(fullPkg[0]).catch(() => {});
+      await upsertClientFromPackage(fullPkg[0]).catch((err) => console.error("[upsertClient:confirm]", err));
     }
+    // Log successful scan
+    const sp = fullPkg[0];
+    await query(
+      "INSERT INTO scan_logs (client_name, client_id_number, package_code, scanned_code, result) VALUES ($1,$2,$3,$4,$5)",
+      [sp?.client_name, sp?.client_id_number, pkg.package_code, scanned_code, "success"],
+    ).catch((err) => console.error("[scanLog:success]", err));
     // Delete the package from the database
     await query("DELETE FROM packages WHERE id = $1", [pkg.id]);
     res.json({ confirmed: true, confirmed_at: new Date().toISOString() });
@@ -218,8 +289,8 @@ router.post("/", validate(createPackageSchema), async (req, res) => {
       ],
     );
     // Auto-create/update client from package info, then add spending
-    await upsertClientFromPackage(b).catch(() => {});
-    await addSpendingToClient(rows[0]).catch(() => {});
+    await upsertClientFromPackage(b).catch((err) => console.error("[upsertClient:create]", err));
+    await addSpendingToClient(rows[0]).catch((err) => console.error("[addSpending:create]", err));
     res.json(rows[0]);
   } catch (err: any) {
     console.error("[packages]", err);
@@ -227,9 +298,18 @@ router.post("/", validate(createPackageSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", validate(updatePackageSchema), async (req, res) => {
+router.put("/:id", validateId, validate(updatePackageSchema), async (req, res) => {
   try {
     const b = req.body;
+
+    // Fetch old package to compare price/currency changes
+    const { rows: oldRows } = await query("SELECT * FROM packages WHERE id = $1", [req.params.id]);
+    if (oldRows.length === 0) {
+      res.status(404).json({ message: "Package not found" });
+      return;
+    }
+    const oldPkg = oldRows[0];
+
     // Build dynamic SET clause from provided fields
     const allowed = [
       "package_code", "product_name", "price", "currency", "payment_status",
@@ -256,16 +336,28 @@ router.put("/:id", validate(updatePackageSchema), async (req, res) => {
       `UPDATE packages SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
       vals,
     );
+
+    const updated = rows[0];
     // Auto-create/update client from package info
-    if (b.client_name) await upsertClientFromPackage(b).catch(() => {});
-    res.json(rows[0] ?? null);
+    if (b.client_name) await upsertClientFromPackage(b).catch((err) => console.error("[upsertClient:update]", err));
+
+    // Recalculate client spending if price or currency changed
+    const priceChanged = "price" in b && parseFloat(b.price) !== (parseFloat(oldPkg.price) || 0);
+    const currencyChanged = "currency" in b && b.currency !== oldPkg.currency;
+    if (priceChanged || currencyChanged) {
+      const newPrice = parseFloat(updated.price) || 0;
+      const newCurrency = (updated.currency || "EUR").toUpperCase();
+      await adjustClientSpending(oldPkg, newPrice, newCurrency).catch((err) => console.error("[adjustSpending:update]", err));
+    }
+
+    res.json(updated);
   } catch (err: any) {
     console.error("[packages]", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateId, async (req, res) => {
   try {
     await query("DELETE FROM packages WHERE id = $1", [req.params.id]);
     res.json({ ok: true });

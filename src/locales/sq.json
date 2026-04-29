@@ -6,6 +6,7 @@
     "packages": "Paketat",
     "clients": "Klientet",
     "warehouses": "Magazinat",
+    "history": "Historiku",
     "settings": "Cilesimet",
     "signOut": "Dil",
     "lightMode": "Ndryshoni ne modalitetin e drites",
@@ -342,6 +343,22 @@
     "pending": "Ne pritje",
     "inTransit": "Ne tranzit",
     "delivered": "Dorezuar"
+  },
+  "history": {
+    "title": "Historiku i Skanimeve",
+    "description": "Te gjitha tentativat e skanimit te paketave nga klientet.",
+    "searchPlaceholder": "Kerko emrin, ID, kodin e paketes...",
+    "allResults": "Te gjitha",
+    "success": "Sukses",
+    "mismatch": "Gabim",
+    "clientName": "Emri i Klientit",
+    "clientId": "ID e Klientit",
+    "packageCode": "Kodi i Paketes",
+    "scannedCode": "Kodi i Skanuar",
+    "result": "Rezultati",
+    "date": "Data",
+    "noHistory": "Nuk ka histori akoma",
+    "noHistoryDescription": "Ngjarjet e skanimit do te shfaqen ketu kur klientet te skanojne kodet QR te paketave."
   },
   "currency": {
     "euro": "Euro",
