@@ -124,7 +124,7 @@ function AppShell() {
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
           <Truck className="h-4 w-4" />
         </div>
-        <div className="font-mono text-sm font-semibold tracking-tight">trans.square.al</div>
+        <div className="font-mono text-sm font-semibold tracking-tight">transport.square.al</div>
         {/* Close button for mobile */}
         <button
           onClick={() => setMobileOpen(false)}

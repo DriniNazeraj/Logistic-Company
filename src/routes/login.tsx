@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Identifikohu — trans.square.al" }],
+    meta: [{ title: "Identifikohu — transport.square.al" }],
   }),
   component: LoginPage,
 });
@@ -59,7 +59,7 @@ function LoginPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
               <Truck className="h-4 w-4" />
             </div>
-            <span className="font-mono text-sm font-semibold">trans.square.al</span>
+            <span className="font-mono text-sm font-semibold">transport.square.al</span>
           </div>
           <div className="space-y-3">
             <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
@@ -93,7 +93,7 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                 className={`w-full rounded-md border bg-input px-3 py-2 text-sm outline-none ring-ring/50 focus:border-ring focus:ring-2 ${errors.email ? "border-destructive" : "border-input"}`}
-                placeholder="manager@trans.square.al"
+                placeholder="manager@transport.square.al"
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>

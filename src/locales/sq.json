@@ -49,7 +49,7 @@
     "downloadPNG": "Shkarko PNG"
   },
   "login": {
-    "title": "Identifikohu \u2014 trans.square.al",
+    "title": "Identifikohu \u2014 transport.square.al",
     "heading": "Identifikohu",
     "createAccount": "Krijo llogari",
     "sidebarHeading": "Kontroll logjistik per ngarkesat qe hyjne dhe dalin nga Shqiperia.",
@@ -238,7 +238,7 @@
     "packagesTotal": "{{count}} paketa gjithsej"
   },
   "track": {
-    "title": "Gjurmo Paketen \u2014 trans.square.al",
+    "title": "Gjurmo Paketen \u2014 transport.square.al",
     "heading": "Gjurmimi i Paketes",
     "confirmed": "Paketa e konfirmuar",
     "deliveryConfirmed": "Dorezimi u konfirmua me",
@@ -277,7 +277,7 @@
     "manualFallback": "Ose perdorni opsionin e futjes manuale me poshte per te shkruar kodin nga etiketa e paketes",
     "enterCodeManually": "Fut kodin manualisht",
     "pointCamera": "Drejtoni kameren tuaj tek kodi QR ne pakete",
-    "footer": "trans.square.al \u2014 Menaxheri i Logjistikes"
+    "footer": "transport.square.al \u2014 Menaxheri i Logjistikes"
   },
   "settings": {
     "title": "Cilesimet",

@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 export const Route = createFileRoute("/warehouse")({
   head: () => ({
     meta: [
-      { title: "Magazinat — trans.square.al" },
+      { title: "Magazinat — transport.square.al" },
       { name: "description", content: "Menaxhoni hapesirat e magazines dhe seksionet." },
     ],
   }),

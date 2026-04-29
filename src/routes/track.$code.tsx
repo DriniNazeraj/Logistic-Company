@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 export const Route = createFileRoute("/track/$code")({
   head: () => ({
     meta: [
-      { title: "Gjurmo Paketen — trans.square.al" },
+      { title: "Gjurmo Paketen — transport.square.al" },
       { name: "description", content: "Gjurmoni statusin e paketes tuaj." },
     ],
   }),

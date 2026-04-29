@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 export const Route = createFileRoute("/calendar")({
   head: () => ({
     meta: [
-      { title: "Kalendari — trans.square.al" },
+      { title: "Kalendari — transport.square.al" },
       { name: "description", content: "Pamja e kalendarit te nisjeve dhe mberritjeve te ngarkesave." },
     ],
   }),

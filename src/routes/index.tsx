@@ -16,7 +16,7 @@ import { SkeletonStatsCard, SkeletonChart } from "@/components/skeleton";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Paneli — trans.square.al" },
+      { title: "Paneli — transport.square.al" },
       { name: "description", content: "Paneli i ngarkesave, paketave dhe magazinave." },
     ],
   }),

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/package")({
   }),
   head: () => ({
     meta: [
-      { title: "Paketat — trans.square.al" },
+      { title: "Paketat — transport.square.al" },
       { name: "description", content: "Menaxhoni paketat individuale dhe caktoni ato ne ngarkesa." },
     ],
   }),
