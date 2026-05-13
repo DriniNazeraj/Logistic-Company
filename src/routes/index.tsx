@@ -49,33 +49,44 @@ function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const { t } = useTranslation();
 
+  const [cms, setCms] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch((import.meta.env.VITE_API_URL || "/api") + "/landing")
+      .then((r) => r.ok ? r.json() : {})
+      .then((data) => setCms(data))
+      .catch(() => {});
+  }, []);
+
+  const c = (key: string, fallback: string) => cms[key] || fallback;
+
   const stats = [
-    { value: "99%", label: t("landing.onTimeDelivery") },
-    { value: "92%", label: t("landing.customerSatisfaction") },
-    { value: "87%", label: t("landing.cargoSafety") },
-    { value: "93%", label: t("landing.clientRetention") },
+    { value: c("stat1_value", "99%"), label: c("stat1_label", t("landing.onTimeDelivery")) },
+    { value: c("stat2_value", "92%"), label: c("stat2_label", t("landing.customerSatisfaction")) },
+    { value: c("stat3_value", "87%"), label: c("stat3_label", t("landing.cargoSafety")) },
+    { value: c("stat4_value", "93%"), label: c("stat4_label", t("landing.clientRetention")) },
   ];
 
   const services = [
-    { icon: "plane", title: t("landing.airFreight"), desc: t("landing.airFreightDesc") },
-    { icon: "express", title: t("landing.expressShipping"), desc: t("landing.expressShippingDesc") },
-    { icon: "truck", title: t("landing.doorToDoor"), desc: t("landing.doorToDoorDesc") },
-    { icon: "warehouse", title: t("landing.warehousing"), desc: t("landing.warehousingDesc") },
-    { icon: "customs", title: t("landing.customClearance"), desc: t("landing.customClearanceDesc") },
-    { icon: "shield", title: t("landing.cargoInsurance"), desc: t("landing.cargoInsuranceDesc") },
+    { icon: "plane", title: c("service1_title", t("landing.airFreight")), desc: c("service1_desc", t("landing.airFreightDesc")) },
+    { icon: "express", title: c("service2_title", t("landing.expressShipping")), desc: c("service2_desc", t("landing.expressShippingDesc")) },
+    { icon: "truck", title: c("service3_title", t("landing.doorToDoor")), desc: c("service3_desc", t("landing.doorToDoorDesc")) },
+    { icon: "warehouse", title: c("service4_title", t("landing.warehousing")), desc: c("service4_desc", t("landing.warehousingDesc")) },
+    { icon: "customs", title: c("service5_title", t("landing.customClearance")), desc: c("service5_desc", t("landing.customClearanceDesc")) },
+    { icon: "shield", title: c("service6_title", t("landing.cargoInsurance")), desc: c("service6_desc", t("landing.cargoInsuranceDesc")) },
   ];
 
   const features = [
-    { title: t("landing.reliability"), desc: t("landing.reliabilityDesc") },
-    { title: t("landing.realTimeTracking"), desc: t("landing.realTimeTrackingDesc") },
-    { title: t("landing.secureHandling"), desc: t("landing.secureHandlingDesc") },
+    { title: c("feature1_title", t("landing.reliability")), desc: c("feature1_desc", t("landing.reliabilityDesc")) },
+    { title: c("feature2_title", t("landing.realTimeTracking")), desc: c("feature2_desc", t("landing.realTimeTrackingDesc")) },
+    { title: c("feature3_title", t("landing.secureHandling")), desc: c("feature3_desc", t("landing.secureHandlingDesc")) },
   ];
 
   const faqs = [
-    { q: t("landing.faq1q"), a: t("landing.faq1a") },
-    { q: t("landing.faq2q"), a: t("landing.faq2a") },
-    { q: t("landing.faq3q"), a: t("landing.faq3a") },
-    { q: t("landing.faq4q"), a: t("landing.faq4a") },
+    { q: c("faq1_q", t("landing.faq1q")), a: c("faq1_a", t("landing.faq1a")) },
+    { q: c("faq2_q", t("landing.faq2q")), a: c("faq2_a", t("landing.faq2a")) },
+    { q: c("faq3_q", t("landing.faq3q")), a: c("faq3_a", t("landing.faq3a")) },
+    { q: c("faq4_q", t("landing.faq4q")), a: c("faq4_a", t("landing.faq4a")) },
   ];
 
   const scrollTo = (id: string) => {
@@ -89,7 +100,7 @@ function LandingPage() {
       <nav className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Transport Square" className="h-10 w-10" />
+            <img src={cms.logo_url || logo} alt="Transport Square" className="h-10 w-10" />
             <span className="text-xl font-bold tracking-tight">Transport Square</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
@@ -122,15 +133,15 @@ function LandingPage() {
       {/* HERO */}
       <section className="relative overflow-hidden bg-neutral-100">
         <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-32">
-          <img src={heroShip} alt="" className="pointer-events-none absolute right-0 top-1/2 w-[55%] max-w-2xl -translate-y-1/2 object-contain opacity-20 md:opacity-30" />
+          <img src={cms.hero_image_url || heroShip} alt="" className="pointer-events-none absolute right-0 top-1/2 w-[55%] max-w-2xl -translate-y-1/2 object-contain opacity-20 md:opacity-30" />
           <div className="relative z-10 max-w-2xl">
             <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-              {t("landing.heroTitle1")}<br />
-              {t("landing.heroTitle2")}<br />
-              <span className="text-neutral-500">{t("landing.heroTitle3")}</span>
+              {c("hero_title1", t("landing.heroTitle1"))}<br />
+              {c("hero_title2", t("landing.heroTitle2"))}<br />
+              <span className="text-neutral-500">{c("hero_title3", t("landing.heroTitle3"))}</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg text-neutral-600">
-              {t("landing.heroDesc")}
+              {c("hero_desc", t("landing.heroDesc"))}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button onClick={() => scrollTo("contact")} className="rounded-md bg-neutral-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-800">
@@ -245,10 +256,10 @@ function LandingPage() {
             <p className="mt-2 text-neutral-400">{t("landing.readyToShipDesc")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <a href="tel:" className="flex items-center gap-2 rounded-md border border-neutral-600 px-5 py-3 text-sm font-medium transition-colors hover:bg-neutral-800">
+            <a href={"tel:" + (cms.contact_phone || "")} className="flex items-center gap-2 rounded-md border border-neutral-600 px-5 py-3 text-sm font-medium transition-colors hover:bg-neutral-800">
               <Phone className="h-4 w-4" /> {t("landing.callUs")}
             </a>
-            <a href="mailto:" className="flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100">
+            <a href={"mailto:" + (cms.contact_email || "")} className="flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100">
               <Mail className="h-4 w-4" /> {t("landing.emailUs")}
             </a>
           </div>
@@ -260,7 +271,7 @@ function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
           <div>
             <div className="flex items-center gap-2">
-              <img src={logo} alt="Transport Square" className="h-9 w-9" />
+              <img src={cms.logo_url || logo} alt="Transport Square" className="h-9 w-9" />
               <span className="text-lg font-bold tracking-tight">Transport Square</span>
             </div>
             <p className="mt-1 text-xs text-neutral-500">{t("landing.footerDesc")}</p>

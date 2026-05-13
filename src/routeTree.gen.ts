@@ -13,6 +13,7 @@ import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PackageRouteImport } from './routes/package'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as CargoRouteImport } from './routes/cargo'
@@ -39,6 +40,11 @@ const PackageRoute = PackageRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/cargo': typeof CargoRouteWithChildren
   '/clients': typeof ClientsRoute
   '/history': typeof HistoryRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/cargo': typeof CargoRouteWithChildren
   '/clients': typeof ClientsRoute
   '/history': typeof HistoryRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/cargo': typeof CargoRouteWithChildren
   '/clients': typeof ClientsRoute
   '/history': typeof HistoryRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/package': typeof PackageRoute
   '/settings': typeof SettingsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/cargo'
     | '/clients'
     | '/history'
+    | '/landing'
     | '/login'
     | '/package'
     | '/settings'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/cargo'
     | '/clients'
     | '/history'
+    | '/landing'
     | '/login'
     | '/package'
     | '/settings'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/cargo'
     | '/clients'
     | '/history'
+    | '/landing'
     | '/login'
     | '/package'
     | '/settings'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   CargoRoute: typeof CargoRouteWithChildren
   ClientsRoute: typeof ClientsRoute
   HistoryRoute: typeof HistoryRoute
+  LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   PackageRoute: typeof PackageRoute
   SettingsRoute: typeof SettingsRoute
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -270,6 +290,7 @@ const rootRouteChildren: RootRouteChildren = {
   CargoRoute: CargoRouteWithChildren,
   ClientsRoute: ClientsRoute,
   HistoryRoute: HistoryRoute,
+  LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   PackageRoute: PackageRoute,
   SettingsRoute: SettingsRoute,

@@ -1,7 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Toaster } from "sonner";
-import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut, Settings, Sun, Moon, CalendarDays, Users, Menu, X, History } from "lucide-react";
+import { Package, Truck, Warehouse as WarehouseIcon, LayoutDashboard, LogOut, Settings, Sun, Moon, CalendarDays, Users, Menu, X, History, FileEdit } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider, useTheme } from "@/lib/theme-context";
 import { useTranslation } from "react-i18next";
@@ -119,6 +119,7 @@ function AppShell() {
     { to: "/warehouse", label: t("nav.warehouses"), icon: WarehouseIcon },
     { to: "/history", label: t("nav.history"), icon: History },
     { to: "/settings", label: t("nav.settings"), icon: Settings },
+    { to: "/landing", label: t("nav.landingPage"), icon: FileEdit },
   ] as const;
 
   const sidebarContent = (

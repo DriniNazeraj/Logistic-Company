@@ -139,6 +139,13 @@ BEGIN
     EXECUTE 'ALTER TABLE packages DROP CONSTRAINT ' || c;
   END LOOP;
 END $$;
+
+-- Landing page editable content
+CREATE TABLE IF NOT EXISTS landing_content (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 async function seedAdmin() {

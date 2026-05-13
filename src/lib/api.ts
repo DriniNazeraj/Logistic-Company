@@ -125,6 +125,12 @@ export const api = {
       request<{ ok: boolean }>("/settings/exchange-rates", { method: "PUT", body: JSON.stringify(rates) }),
   },
 
+  landing: {
+    get: () => request<Record<string, string>>("/landing"),
+    save: (data: Record<string, string>) =>
+      request<{ ok: boolean }>("/landing", { method: "PUT", body: JSON.stringify(data) }),
+  },
+
   clients: {
     list: (page?: number, limit?: number) =>
       request<PaginatedResponse<any>>(`/clients?page=${page ?? 1}&limit=${limit ?? 200}`)
