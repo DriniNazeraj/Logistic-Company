@@ -85,8 +85,9 @@ function LoginPage() {
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">{t("login.emailLabel")}</label>
+              <label htmlFor="login-email" className="text-xs font-medium text-muted-foreground">{t("login.emailLabel")}</label>
               <input
+                id="login-email"
                 type="email"
                 required
                 value={email}
@@ -97,8 +98,9 @@ function LoginPage() {
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">{t("login.passwordLabel")}</label>
+              <label htmlFor="login-password" className="text-xs font-medium text-muted-foreground">{t("login.passwordLabel")}</label>
               <input
+                id="login-password"
                 type="password"
                 required
                 minLength={8}

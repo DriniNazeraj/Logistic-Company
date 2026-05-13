@@ -49,8 +49,9 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const lang = typeof window !== "undefined" ? (localStorage.getItem("i18nextLng") || "en") : "en";
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
         <HeadContent />
         <link rel="icon" type="image/png" href={logo} />

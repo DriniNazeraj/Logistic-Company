@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
 });
 
 const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml",
+  "image/jpeg", "image/png", "image/webp", "image/gif",
 ]);
 
 const upload = multer({

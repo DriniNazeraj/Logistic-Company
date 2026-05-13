@@ -1,10 +1,19 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { findUserByEmail, createUser, comparePassword, signToken, authMiddleware, type AuthRequest } from "../auth.js";
 import { loginSchema, registerSchema, validate } from "../validation.js";
 
 const router = Router();
 
-router.post("/login", validate(loginSchema), async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Please try again later." },
+});
+
+router.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await findUserByEmail(email);

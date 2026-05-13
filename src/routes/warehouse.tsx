@@ -674,7 +674,7 @@ function WarehouseSettingsForm({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const payload = { name, location: location || undefined, canvas_width: w, canvas_height: h };
+    const payload = { name, location: location || null, canvas_width: w, canvas_height: h };
     try {
       await api.warehouses.update(warehouse.id, payload);
       toast.success(t("warehouse.warehouseUpdated"));

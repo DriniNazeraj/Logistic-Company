@@ -20,6 +20,10 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Uploaded files
+uploads/
+server/uploads/
+
 # Environment files (secrets)
 .env
 server/.env

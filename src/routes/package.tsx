@@ -7,8 +7,9 @@ import { Modal, Field, Input, Select, Button, FormShell } from "@/components/ui-
 import { MoneyInput } from "@/components/money-input";
 import { formatMoney, formatDate, shortId, Currency } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download, Link2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package as PackageIcon, Upload, QrCode, Download, Link2, Printer, CheckSquare, Square } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { useTranslation } from "react-i18next";
 import { SkeletonCardGrid } from "@/components/skeleton";
 
@@ -80,7 +81,26 @@ function PackagesPage() {
   const [query, setQuery] = useState("");
   const [cargoFilter, setCargoFilter] = useState(cargoParam ?? "all");
   const [qrPkg, setQrPkg] = useState<Pkg | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkPrintOpen, setBulkPrintOpen] = useState(false);
   const { t } = useTranslation();
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map((p) => p.id)));
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -177,6 +197,19 @@ function PackagesPage() {
               </option>
             ))}
           </Select>
+          {filtered.length > 0 && (
+            <>
+              <Button variant="secondary" onClick={toggleSelectAll}>
+                {selected.size === filtered.length ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                {selected.size === filtered.length ? t("common.deselectAll") : t("common.selectAll")}
+              </Button>
+              {selected.size > 0 && (
+                <Button onClick={() => setBulkPrintOpen(true)}>
+                  <Printer className="h-4 w-4" /> {t("common.printLabels")} ({selected.size})
+                </Button>
+              )}
+            </>
+          )}
         </div>
 
         {busy ? (
@@ -205,7 +238,19 @@ function PackagesPage() {
                 ? warehouses.find((w) => w.id === section.warehouse_id)
                 : null;
               return (
-                <div key={p.id} className="overflow-hidden rounded-lg border border-border bg-card">
+                <div key={p.id} className={`overflow-hidden rounded-lg border bg-card ${selected.has(p.id) ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
+                  <div
+                    className="flex cursor-pointer items-center gap-2 border-b border-border px-3 py-1.5"
+                    onClick={() => toggleSelect(p.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      onChange={() => toggleSelect(p.id)}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground">{t("common.select")}</span>
+                  </div>
                   {p.image_url ? (
                     <div className="aspect-video overflow-hidden bg-secondary">
                       <img src={p.image_url} alt={p.product_name} className="h-full w-full object-cover" />
@@ -332,7 +377,162 @@ function PackagesPage() {
       >
         {qrPkg && <PackageQR pkg={qrPkg} />}
       </Modal>
+
+      <Modal
+        open={bulkPrintOpen}
+        onClose={() => setBulkPrintOpen(false)}
+        title={t("common.printLabels")}
+      >
+        <BulkPrintDialog
+          packages={packages.filter((p) => selected.has(p.id))}
+          onClose={() => setBulkPrintOpen(false)}
+        />
+      </Modal>
     </>
+  );
+}
+
+const PAGE_SIZES = [
+  { name: "A4", width: 210, height: 297 },
+  { name: "A3", width: 297, height: 420 },
+  { name: "Letter", width: 216, height: 279 },
+] as const;
+
+
+function BulkPrintDialog({ packages: pkgs, onClose }: { packages: Pkg[]; onClose: () => void }) {
+  const { t } = useTranslation();
+  const [pageSize, setPageSize] = useState("A4");
+  const page = PAGE_SIZES.find((p) => p.name === pageSize) ?? PAGE_SIZES[0];
+  const label = { w: 96, h: 68 };
+
+  const margin = 5; // mm page margin
+  const gap = 3; // mm between labels
+  const usableW = page.width - margin * 2;
+  const usableH = page.height - margin * 2;
+  const cols = Math.floor((usableW + gap) / (label.w + gap));
+  const rows = Math.floor((usableH + gap) / (label.h + gap));
+  const perPage = cols * rows;
+  const totalPages = Math.ceil(pkgs.length / perPage);
+
+  const escHtml = (s: string | null | undefined) => {
+    if (!s) return "—";
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  };
+
+  const doPrint = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const qrSvg = (url: string, size: number) =>
+      renderToStaticMarkup(<QRCodeSVG value={url} size={size} />);
+
+    const renderLabel = (pkg: Pkg) => {
+      const paymentLabel = { paid: t("package.paid"), unpaid: t("package.onDelivery"), partial: t("package.partly") }[pkg.payment_status] ?? "—";
+      const trackUrl = `${window.location.origin}/track/${pkg.track_token}`;
+
+      return `
+        <div class="lbl" style="width:${label.w}mm;height:${label.h}mm;">
+          <div style="height:100%;display:flex;flex-direction:column;padding:2mm;">
+            <div style="display:flex;gap:2.5mm;flex:1;min-height:0;">
+              <div style="width:22mm;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1.5px dashed #aaa;padding-right:2mm;">
+                <div style="width:20mm;height:20mm;">${qrSvg(trackUrl, 150)}</div>
+                <div style="font-family:monospace;font-size:7px;font-weight:bold;margin-top:1.5mm;text-align:center;word-break:break-all;">${escHtml(pkg.package_code)}</div>
+              </div>
+              <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;">
+                <div style="background:#000;color:#fff;padding:1.5px 4px;font-size:9px;font-weight:bold;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(pkg.client_name)}</div>
+                ${pkg.client_phone ? `<div style="font-size:7.5px;margin-top:1px;color:#444;">${escHtml(pkg.client_phone)}</div>` : ""}
+                ${pkg.client_id_number ? `<div style="font-size:7px;color:#666;">ID: ${escHtml(pkg.client_id_number)}</div>` : ""}
+                <div style="margin-top:auto;border-top:1px solid #ddd;padding-top:1.5px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;font-weight:bold;">${formatMoney(pkg.price, pkg.currency)}</span>
+                    <span class="badge-${pkg.payment_status}" style="padding:0.5px 5px;border-radius:2px;font-size:7.5px;font-weight:bold;text-transform:uppercase;">${paymentLabel}</span>
+                  </div>
+                  ${pkg.payment_status === "partial" ? `<div style="font-size:6.5px;color:#666;">Paid: ${formatMoney(pkg.amount_paid, pkg.currency)} · Rem: ${formatMoney(pkg.amount_remaining, pkg.currency)}</div>` : ""}
+                </div>
+                <div style="margin-top:1.5px;font-size:7px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  <span style="font-weight:bold;">To:</span> ${escHtml(pkg.destination_location)}
+                </div>
+                <div style="font-size:6.5px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(pkg.product_name)}${pkg.arrival_date ? ` · ${formatDate(pkg.arrival_date)}` : ""}</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    };
+
+    const labelsHtml = pkgs.map(renderLabel).join("\n");
+
+    win.document.write(`
+      <html><head><title>Bulk Labels</title>
+      <style>
+        @page { size: ${page.name}; margin: ${margin}mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, Helvetica, sans-serif; }
+        .page-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: ${gap}mm;
+          align-content: flex-start;
+        }
+        .lbl {
+          border: 2px solid #000;
+          overflow: hidden;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+        .lbl svg { width: 100%; height: 100%; display: block; }
+        .badge-paid { background: #d1fae5; color: #065f46; border: 1px solid #065f46; }
+        .badge-unpaid { background: #fee2e2; color: #991b1b; border: 1px solid #991b1b; }
+        .badge-partial { background: #fef3c7; color: #92400e; border: 1px solid #92400e; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+      </head>
+      <body>
+        <div class="page-grid">${labelsHtml}</div>
+        <script>setTimeout(function() { window.print(); }, 300);<\/script>
+      </body></html>
+    `);
+    win.document.close();
+  };
+
+  return (
+    <div className="space-y-4 py-2">
+      <div className="text-sm text-muted-foreground">
+        {pkgs.length} {pkgs.length === 1 ? "label" : "labels"} selected
+      </div>
+      <Field label={t("common.pageSize")}>
+        <Select value={pageSize} onChange={(e) => setPageSize(e.target.value)}>
+          {PAGE_SIZES.map((s) => (
+            <option key={s.name} value={s.name}>{s.name} ({s.width}×{s.height}mm)</option>
+          ))}
+        </Select>
+      </Field>
+      <div className="rounded-lg border border-border bg-secondary/50 p-3 text-sm">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div className="text-lg font-bold">{perPage}</div>
+            <div className="text-xs text-muted-foreground">per page</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold">{totalPages}</div>
+            <div className="text-xs text-muted-foreground">{totalPages === 1 ? "page" : "pages"}</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold">{cols}×{rows}</div>
+            <div className="text-xs text-muted-foreground">grid</div>
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="secondary" onClick={onClose}>
+          {t("common.cancel")}
+        </Button>
+        <Button onClick={doPrint}>
+          <Printer className="h-4 w-4" /> {t("common.print")} {pkgs.length} {pkgs.length === 1 ? "label" : "labels"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -368,16 +568,109 @@ function PackageQR({ pkg }: { pkg: Pkg }) {
     const svgData = new XMLSerializer().serializeToString(svg);
     const win = window.open("", "_blank");
     if (!win) return;
+
+    const escHtml = (s: string | null | undefined) => {
+      if (!s) return "—";
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    };
+
     win.document.write(`
-      <html><head><title>QR - ${pkg.package_code}</title>
-      <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif;margin:0}
-      h2{margin:0 0 4px}p{margin:0;color:#666;font-size:14px}.code{font-family:monospace;font-size:13px;color:#888;margin-top:2px}</style></head>
+      <html><head><title>Label - ${pkg.package_code}</title>
+      <style>
+        @page { size: 100mm 150mm; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100mm; height: 150mm; overflow: hidden; font-family: Arial, Helvetica, sans-serif; margin: 0; }
+        .label {
+          border: 3px solid #000;
+          padding: 2mm 3mm;
+          width: 100mm;
+          height: 150mm;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 2px solid #000;
+          padding-bottom: 3px;
+          margin-bottom: 3px;
+        }
+        .header h1 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; }
+        .header .code { font-family: monospace; font-size: 15px; font-weight: bold; margin-top: 1px; }
+        .qr-section {
+          text-align: center;
+          padding: 3px 0;
+          border-bottom: 1.5px dashed #000;
+          margin-bottom: 3px;
+        }
+        .qr-section svg { width: 100px; height: 100px; }
+        .recipient {
+          background: #000;
+          color: #fff;
+          padding: 4px 6px;
+          margin-bottom: 3px;
+          text-align: center;
+        }
+        .recipient .name { font-size: 14px; font-weight: bold; text-transform: uppercase; }
+        .recipient .phone { font-size: 10px; margin-top: 1px; }
+        .payment-row {
+          text-align: center;
+          padding: 3px 0;
+          border-bottom: 1.5px solid #000;
+          margin-bottom: 3px;
+        }
+        .price { font-size: 16px; font-weight: bold; }
+        .payment-badge {
+          display: inline-block;
+          padding: 1px 8px;
+          border-radius: 2px;
+          font-size: 10px;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+        .paid { background: #d1fae5; color: #065f46; border: 1px solid #065f46; }
+        .unpaid { background: #fee2e2; color: #991b1b; border: 1px solid #991b1b; }
+        .partial { background: #fef3c7; color: #92400e; border: 1px solid #92400e; }
+        .info { flex: 1; min-height: 0; overflow: hidden; }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 1.5px 0;
+          font-size: 9px;
+        }
+        .info-row .lbl { font-weight: bold; text-transform: uppercase; font-size: 8px; color: #333; }
+        .info-row .val { font-weight: 600; }
+        .footer { text-align: center; font-size: 7px; color: #999; padding-top: 2px; border-top: 1px solid #ddd; }
+        @media print {
+          html, body { width: 100mm; height: 150mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style></head>
       <body>
-        ${svgData}
-        <h2 style="margin-top:16px">${pkg.product_name}</h2>
-        <p class="code">${pkg.package_code}</p>
-        <p style="margin-top:8px">${formatMoney(pkg.price, pkg.currency)} &middot; ${paymentLabel}</p>
-        ${pkg.destination_location ? `<p>${pkg.destination_location}</p>` : ""}
+        <div class="label">
+          <div class="header">
+            <h1>Shipping Label</h1>
+            <div class="code">${escHtml(pkg.package_code)}</div>
+          </div>
+          <div class="qr-section">${svgData}</div>
+          <div class="recipient">
+            <div class="name">${escHtml(pkg.client_name)}</div>
+            ${pkg.client_phone ? `<div class="phone">${escHtml(pkg.client_phone)}</div>` : ""}
+            ${pkg.client_id_number ? `<div class="phone">ID: ${escHtml(pkg.client_id_number)}</div>` : ""}
+          </div>
+          <div class="payment-row">
+            <div class="price">${formatMoney(pkg.price, pkg.currency)}</div>
+            <span class="payment-badge ${pkg.payment_status}">${paymentLabel}</span>
+            ${pkg.payment_status === "partial" ? `<div style="font-size:9px;margin-top:2px">Paid: ${formatMoney(pkg.amount_paid, pkg.currency)} · Rem: ${formatMoney(pkg.amount_remaining, pkg.currency)}</div>` : ""}
+          </div>
+          <div class="info">
+            <div class="info-row"><span class="lbl">Product</span><span class="val">${escHtml(pkg.product_name)}</span></div>
+            <div class="info-row"><span class="lbl">Destination</span><span class="val">${escHtml(pkg.destination_location)}</span></div>
+            ${pkg.arrival_date ? `<div class="info-row"><span class="lbl">Arrival</span><span class="val">${formatDate(pkg.arrival_date)}</span></div>` : ""}
+            ${pkg.delivery_date ? `<div class="info-row"><span class="lbl">Delivery</span><span class="val">${formatDate(pkg.delivery_date)}</span></div>` : ""}
+          </div>
+          <div class="footer">transport.square.al · ${new Date().toLocaleDateString()}</div>
+        </div>
       </body></html>
     `);
     win.document.close();

@@ -47,34 +47,35 @@ function Index() {
 function LandingPage() {
   const [mobileNav, setMobileNav] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const { t } = useTranslation();
 
   const stats = [
-    { value: "99%", label: "On-Time Delivery Rate" },
-    { value: "92%", label: "Customer Satisfaction" },
-    { value: "87%", label: "Cargo Safety Rate" },
-    { value: "93%", label: "Client Retention Rate" },
+    { value: "99%", label: t("landing.onTimeDelivery") },
+    { value: "92%", label: t("landing.customerSatisfaction") },
+    { value: "87%", label: t("landing.cargoSafety") },
+    { value: "93%", label: t("landing.clientRetention") },
   ];
 
   const services = [
-    { icon: "plane", title: "Air Freight", desc: "Fast and secure air freight from USA to Albania, ensuring your goods arrive on time." },
-    { icon: "express", title: "Express Shipping", desc: "Priority express shipping for urgent packages with real-time tracking." },
-    { icon: "truck", title: "Door-to-Door", desc: "Complete door-to-door delivery service from any US address to Albania." },
-    { icon: "warehouse", title: "Warehousing", desc: "Secure warehouse storage with organized sections and real-time inventory management." },
-    { icon: "customs", title: "Custom Clearance", desc: "Expert handling of customs procedures for smooth and hassle-free import to Albania." },
-    { icon: "shield", title: "Cargo Insurance", desc: "Comprehensive cargo insurance to protect your goods against any unforeseen risks." },
+    { icon: "plane", title: t("landing.airFreight"), desc: t("landing.airFreightDesc") },
+    { icon: "express", title: t("landing.expressShipping"), desc: t("landing.expressShippingDesc") },
+    { icon: "truck", title: t("landing.doorToDoor"), desc: t("landing.doorToDoorDesc") },
+    { icon: "warehouse", title: t("landing.warehousing"), desc: t("landing.warehousingDesc") },
+    { icon: "customs", title: t("landing.customClearance"), desc: t("landing.customClearanceDesc") },
+    { icon: "shield", title: t("landing.cargoInsurance"), desc: t("landing.cargoInsuranceDesc") },
   ];
 
   const features = [
-    { title: "Reliability", desc: "Our commitment to on-time deliveries ensures your packages arrive without delays." },
-    { title: "Real-Time Tracking", desc: "Track every package with a unique QR code from warehouse to doorstep." },
-    { title: "Secure Handling", desc: "Your cargo is handled with care, stored securely, and delivered safely." },
+    { title: t("landing.reliability"), desc: t("landing.reliabilityDesc") },
+    { title: t("landing.realTimeTracking"), desc: t("landing.realTimeTrackingDesc") },
+    { title: t("landing.secureHandling"), desc: t("landing.secureHandlingDesc") },
   ];
 
   const faqs = [
-    { q: "What shipping services do you offer?", a: "We provide comprehensive cargo shipping from USA to Albania, including air freight, express shipping, door-to-door delivery, warehousing, customs clearance, and cargo insurance." },
-    { q: "How do I track my package?", a: "Each package receives a unique tracking link and QR code. Simply open the link or scan the QR code to see your package status, location in our warehouse, and estimated delivery date." },
-    { q: "How long does shipping take?", a: "Standard shipping from USA to Albania typically takes 10-15 business days. Express shipping is available for 5-7 business days delivery." },
-    { q: "How can I contact you?", a: "You can reach us by phone or email. Our contact details are in the Contact section below. We're available Monday through Saturday." },
+    { q: t("landing.faq1q"), a: t("landing.faq1a") },
+    { q: t("landing.faq2q"), a: t("landing.faq2a") },
+    { q: t("landing.faq3q"), a: t("landing.faq3a") },
+    { q: t("landing.faq4q"), a: t("landing.faq4a") },
   ];
 
   const scrollTo = (id: string) => {
@@ -92,13 +93,13 @@ function LandingPage() {
             <span className="text-xl font-bold tracking-tight">Transport Square</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
-            {["Services", "Why Us", "FAQ"].map((item) => (
-              <button key={item} onClick={() => scrollTo(item.toLowerCase().replace(" ", "-"))} className="text-sm text-neutral-600 transition-colors hover:text-neutral-900">
-                {item}
+            {[{ key: "services", label: t("landing.services") }, { key: "why-us", label: t("landing.whyUs") }, { key: "faq", label: t("landing.faq") }].map((item) => (
+              <button key={item.key} onClick={() => scrollTo(item.key)} className="text-sm text-neutral-600 transition-colors hover:text-neutral-900">
+                {item.label}
               </button>
             ))}
             <button onClick={() => scrollTo("contact")} className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800">
-              Contact Us
+              {t("landing.contactUs")}
             </button>
           </div>
           <button className="md:hidden" onClick={() => setMobileNav(!mobileNav)}>
@@ -108,9 +109,9 @@ function LandingPage() {
         {mobileNav && (
           <div className="border-t border-neutral-200 bg-white px-6 py-4 md:hidden">
             <div className="flex flex-col gap-3">
-              {["Services", "Why Us", "FAQ"].map((item) => (
-                <button key={item} onClick={() => scrollTo(item.toLowerCase().replace(" ", "-"))} className="text-left text-sm text-neutral-600 hover:text-neutral-900">
-                  {item}
+              {[{ key: "services", label: t("landing.services") }, { key: "why-us", label: t("landing.whyUs") }, { key: "faq", label: t("landing.faq") }].map((item) => (
+                <button key={item.key} onClick={() => scrollTo(item.key)} className="text-left text-sm text-neutral-600 hover:text-neutral-900">
+                  {item.label}
                 </button>
               ))}
             </div>
@@ -124,19 +125,19 @@ function LandingPage() {
           <img src={heroShip} alt="" className="pointer-events-none absolute right-0 top-1/2 w-[55%] max-w-2xl -translate-y-1/2 object-contain opacity-20 md:opacity-30" />
           <div className="relative z-10 max-w-2xl">
             <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-              Cargo Shipping<br />
-              From USA to<br />
-              <span className="text-neutral-500">Albania</span>
+              {t("landing.heroTitle1")}<br />
+              {t("landing.heroTitle2")}<br />
+              <span className="text-neutral-500">{t("landing.heroTitle3")}</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg text-neutral-600">
-              Transport Square offers reliable cargo shipping services from the United States to Albania. Fast, secure, and cost-effective deliveries tailored to your needs.
+              {t("landing.heroDesc")}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button onClick={() => scrollTo("contact")} className="rounded-md bg-neutral-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-800">
-                Get in Touch
+                {t("landing.getInTouch")}
               </button>
               <button onClick={() => scrollTo("services")} className="rounded-md border border-neutral-300 bg-white px-6 py-3 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-50">
-                Our Services
+                {t("landing.ourServices")}
               </button>
             </div>
           </div>
@@ -147,9 +148,9 @@ function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 py-16 md:py-24">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Who We Are</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-neutral-400">{t("landing.whoWeAre")}</div>
             <p className="mt-4 text-2xl font-medium leading-relaxed text-neutral-800 md:text-3xl">
-              We are a trusted freight and logistics company, delivering timely, secure, and cost-effective shipping solutions from USA to Albania.
+              {t("landing.whoWeAreDesc")}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-6">
@@ -166,9 +167,9 @@ function LandingPage() {
       {/* SERVICES */}
       <section id="services" className="bg-neutral-50 py-16 md:py-24">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Our Services</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-neutral-400">{t("landing.ourServices")}</div>
           <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-            Reliable solutions to<br />streamline your shipping
+            {t("landing.servicesHeading")}
           </h2>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((s) => (
@@ -193,7 +194,7 @@ function LandingPage() {
       <section id="why-us" className="bg-neutral-900 py-16 text-white md:py-24">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Why Clients Trust<br />Transport Square
+            {t("landing.whyTrust")}
           </h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {features.map((f) => (
@@ -211,10 +212,10 @@ function LandingPage() {
         <div className="grid gap-12 md:grid-cols-2">
           <div>
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-              Frequently Asked<br />Questions
+              {t("landing.faqHeading")}
             </h2>
             <p className="mt-4 text-neutral-600">
-              Find answers to common questions about our shipping services and how Transport Square can help.
+              {t("landing.faqSubheading")}
             </p>
           </div>
           <div className="divide-y divide-neutral-200">
@@ -240,15 +241,15 @@ function LandingPage() {
       <section id="contact" className="bg-neutral-900 py-12 text-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
           <div>
-            <h2 className="text-2xl font-bold md:text-3xl">Ready to ship with Transport Square?</h2>
-            <p className="mt-2 text-neutral-400">Get in touch with us for a quote or any questions.</p>
+            <h2 className="text-2xl font-bold md:text-3xl">{t("landing.readyToShip")}</h2>
+            <p className="mt-2 text-neutral-400">{t("landing.readyToShipDesc")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <a href="tel:" className="flex items-center gap-2 rounded-md border border-neutral-600 px-5 py-3 text-sm font-medium transition-colors hover:bg-neutral-800">
-              <Phone className="h-4 w-4" /> Call Us
+              <Phone className="h-4 w-4" /> {t("landing.callUs")}
             </a>
             <a href="mailto:" className="flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100">
-              <Mail className="h-4 w-4" /> Email Us
+              <Mail className="h-4 w-4" /> {t("landing.emailUs")}
             </a>
           </div>
         </div>
@@ -262,17 +263,17 @@ function LandingPage() {
               <img src={logo} alt="Transport Square" className="h-9 w-9" />
               <span className="text-lg font-bold tracking-tight">Transport Square</span>
             </div>
-            <p className="mt-1 text-xs text-neutral-500">Reliable cargo shipping from USA to Albania.</p>
+            <p className="mt-1 text-xs text-neutral-500">{t("landing.footerDesc")}</p>
           </div>
           <div className="flex items-center gap-6 text-sm text-neutral-500">
-            <button onClick={() => scrollTo("services")} className="hover:text-neutral-900">Services</button>
-            <button onClick={() => scrollTo("faq")} className="hover:text-neutral-900">FAQ</button>
-            <button onClick={() => scrollTo("contact")} className="hover:text-neutral-900">Contact</button>
-            <Link to="/login" className="text-neutral-400 transition-colors hover:text-neutral-600">Admin</Link>
+            <button onClick={() => scrollTo("services")} className="hover:text-neutral-900">{t("landing.services")}</button>
+            <button onClick={() => scrollTo("faq")} className="hover:text-neutral-900">{t("landing.faq")}</button>
+            <button onClick={() => scrollTo("contact")} className="hover:text-neutral-900">{t("landing.contactUs")}</button>
+            <Link to="/login" className="text-neutral-400 transition-colors hover:text-neutral-600">{t("landing.admin")}</Link>
           </div>
         </div>
         <div className="mx-auto mt-6 max-w-6xl px-6 text-center text-xs text-neutral-400">
-          &copy; {new Date().getFullYear()} Transport Square. All rights reserved.
+          &copy; {new Date().getFullYear()} {t("landing.copyright")}
         </div>
       </footer>
     </div>

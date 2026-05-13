@@ -19,7 +19,7 @@ export interface AuthRequest extends Request {
 }
 
 export function signToken(user: AuthUser): string {
-  return jwt.sign({ sub: user.id, email: user.email }, SECRET, { expiresIn: "30d" });
+  return jwt.sign({ sub: user.id, email: user.email }, SECRET, { expiresIn: "8h" });
 }
 
 export function verifyToken(token: string): AuthUser {
