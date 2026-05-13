@@ -83,36 +83,33 @@ function WarehousePage() {
 
   const load = async (selectId?: string) => {
     setBusy(true);
+    try {
+      const list: Warehouse[] = await api.warehouses.list() ?? [];
 
-    const list: Warehouse[] = await api.warehouses.list() ?? [];
-
-    // Auto-create one if none exists
-    if (list.length === 0) {
-      try {
+      // Auto-create one if none exists
+      if (list.length === 0) {
         const created = await api.warehouses.create({ name: "USA", canvas_width: 1000, canvas_height: 600 });
         list.push(created as Warehouse);
-      } catch (err: any) {
-        toast.error(err.message);
-        setBusy(false);
-        return;
       }
+
+      setAllWarehouses(list);
+
+      // Pick which warehouse to show
+      const w = (selectId ? list.find((x) => x.id === selectId) : null) ?? list[0];
+      if (!w) { setBusy(false); return; }
+
+      const [ss, ps] = await Promise.all([
+        api.sections.list(w.id),
+        api.packages.list(),
+      ]);
+
+      setWarehouse(w);
+      setSections(ss ?? []);
+      setPackages((ps ?? []).map((p: any) => ({ id: p.id, package_code: p.package_code, product_name: p.product_name, section_id: p.section_id })));
+      setSelected(null);
+    } catch (err: any) {
+      toast.error(err.message);
     }
-
-    setAllWarehouses(list);
-
-    // Pick which warehouse to show
-    const w = (selectId ? list.find((x) => x.id === selectId) : null) ?? list[0];
-    if (!w) { setBusy(false); return; }
-
-    const [ss, ps] = await Promise.all([
-      api.sections.list(w.id),
-      api.packages.list(),
-    ]);
-
-    setWarehouse(w);
-    setSections(ss ?? []);
-    setPackages((ps ?? []).map((p: any) => ({ id: p.id, package_code: p.package_code, product_name: p.product_name, section_id: p.section_id })));
-    setSelected(null);
     setBusy(false);
   };
 

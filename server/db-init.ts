@@ -142,10 +142,10 @@ END $$;
 `;
 
 async function seedAdmin() {
-  const email = process.env.ADMIN_EMAIL || "manager@gmail.com";
+  const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
-  if (!password) {
-    console.log("ADMIN_PASSWORD not set, skipping admin seed.");
+  if (!email || !password) {
+    console.log("ADMIN_EMAIL or ADMIN_PASSWORD not set, skipping admin seed.");
     return;
   }
   const { rows } = await query("SELECT id FROM users WHERE email = $1", [email]);

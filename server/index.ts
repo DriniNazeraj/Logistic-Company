@@ -26,9 +26,12 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 // Request logging
 app.use(morgan("short"));
 
+if (!process.env.CORS_ORIGINS) {
+  console.warn("[WARN] CORS_ORIGINS not set — defaulting to localhost origins (dev only)");
+}
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:3001", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:8083", "http://localhost:8084"];
+  : ["http://localhost:5173", "http://localhost:3001", "http://localhost:8080"];
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 
 // Body parser with size limit
@@ -51,6 +54,11 @@ app.use("/api/history", historyRoutes);
 app.get("/api/health", (_req, res) => {
   const dbOk = isDatabaseAvailable();
   res.status(dbOk ? 200 : 503).json({ status: dbOk ? "ok" : "degraded", database: dbOk });
+});
+
+// 404 handler for unknown routes
+app.use((_req, res) => {
+  res.status(404).json({ message: "Not found" });
 });
 
 // Global error handler — never leak internal details to the client

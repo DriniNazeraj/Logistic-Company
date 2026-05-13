@@ -57,10 +57,9 @@ function CargosPage() {
   const load = async () => {
     setBusy(true);
 
-    await autoTransitPendingCargos();
-    await loadExchangeRates();
-
     try {
+      await autoTransitPendingCargos().catch(() => {});
+      await loadExchangeRates().catch(() => {});
       const [cs, ps] = await Promise.all([
         api.cargos.list(),
         api.packages.listSummary(),

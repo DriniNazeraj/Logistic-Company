@@ -108,16 +108,20 @@ function PackagesPage() {
 
   const load = async () => {
     setBusy(true);
-    const [ps, cs, ws, ss] = await Promise.all([
-      api.packages.list(),
-      api.cargos.list(),
-      api.warehouses.list(),
-      api.sections.list(),
-    ]);
-    setPackages(ps ?? []);
-    setCargos(cs ?? []);
-    setWarehouses(ws ?? []);
-    setSections(ss ?? []);
+    try {
+      const [ps, cs, ws, ss] = await Promise.all([
+        api.packages.list(),
+        api.cargos.list(),
+        api.warehouses.list(),
+        api.sections.list(),
+      ]);
+      setPackages(ps ?? []);
+      setCargos(cs ?? []);
+      setWarehouses(ws ?? []);
+      setSections(ss ?? []);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
     setBusy(false);
   };
 

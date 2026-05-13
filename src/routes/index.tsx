@@ -306,54 +306,58 @@ function Dashboard() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      await autoTransitPendingCargos();
-      const [counts, pkgs, allCargos, allPkgs] = await Promise.all([
-        api.cargos.stats(),
-        api.packages.listSummary(),
-        api.cargos.list(),
-        api.packages.list(),
-      ]);
-      const totalsByCurrency: Record<string, number> = {};
-      pkgs.forEach((x: any) => {
-        const cur = x.currency ?? "EUR";
-        totalsByCurrency[cur] = (totalsByCurrency[cur] ?? 0) + Number(x.price ?? 0);
-      });
+      try {
+        await autoTransitPendingCargos().catch(() => {});
+        const [counts, pkgs, allCargos, allPkgs] = await Promise.all([
+          api.cargos.stats(),
+          api.packages.listSummary(),
+          api.cargos.list(),
+          api.packages.list(),
+        ]);
+        const totalsByCurrency: Record<string, number> = {};
+        pkgs.forEach((x: any) => {
+          const cur = x.currency ?? "EUR";
+          totalsByCurrency[cur] = (totalsByCurrency[cur] ?? 0) + Number(x.price ?? 0);
+        });
 
-      const statusCounts: Record<string, number> = { pending: 0, in_transit: 0, delivered: 0 };
-      allCargos.forEach((r: any) => {
-        const s = r.status;
-        statusCounts[s] = (statusCounts[s] ?? 0) + 1;
-      });
-      const cargoByStatus = [
-        { name: t("overview.pending"), value: statusCounts.pending },
-        { name: t("overview.inTransitStatus"), value: statusCounts.in_transit },
-        { name: t("overview.delivered"), value: statusCounts.delivered },
-      ].filter((d) => d.value > 0);
+        const statusCounts: Record<string, number> = { pending: 0, in_transit: 0, delivered: 0 };
+        allCargos.forEach((r: any) => {
+          const s = r.status;
+          statusCounts[s] = (statusCounts[s] ?? 0) + 1;
+        });
+        const cargoByStatus = [
+          { name: t("overview.pending"), value: statusCounts.pending },
+          { name: t("overview.inTransitStatus"), value: statusCounts.in_transit },
+          { name: t("overview.delivered"), value: statusCounts.delivered },
+        ].filter((d) => d.value > 0);
 
-      const today = new Date();
-      const days: { day: string; count: number }[] = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        days.push({ day: d.toLocaleDateString(i18n.language === "sq" ? "sq-AL" : "en-US", { weekday: "short" }), count: 0 });
-      }
-      allPkgs.forEach((r: any) => {
-        const created = new Date(r.created_at);
-        const diff = Math.floor((today.getTime() - created.getTime()) / 86400000);
-        if (diff >= 0 && diff < 7) {
-          days[6 - diff].count += 1;
+        const today = new Date();
+        const days: { day: string; count: number }[] = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          days.push({ day: d.toLocaleDateString(i18n.language === "sq" ? "sq-AL" : "en-US", { weekday: "short" }), count: 0 });
         }
-      });
+        allPkgs.forEach((r: any) => {
+          const created = new Date(r.created_at);
+          const diff = Math.floor((today.getTime() - created.getTime()) / 86400000);
+          if (diff >= 0 && diff < 7) {
+            days[6 - diff].count += 1;
+          }
+        });
 
-      setStats({
-        cargos: counts.total,
-        inTransit: counts.inTransit,
-        packages: pkgs.length,
-        warehouses: counts.warehouses,
-        totalsByCurrency,
-        cargoByStatus,
-        packagesByDay: days,
-      });
+        setStats({
+          cargos: counts.total,
+          inTransit: counts.inTransit,
+          packages: pkgs.length,
+          warehouses: counts.warehouses,
+          totalsByCurrency,
+          cargoByStatus,
+          packagesByDay: days,
+        });
+      } catch (err: any) {
+        console.error("[dashboard]", err);
+      }
     })();
   }, [user]);
 

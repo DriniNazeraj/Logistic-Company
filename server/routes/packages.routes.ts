@@ -1,9 +1,18 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { query } from "../db.js";
 import { authMiddleware } from "../auth.js";
 import { createPackageSchema, updatePackageSchema, validate, validateId } from "../validation.js";
 
 const router = Router();
+
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
 
 /**
  * Auto-create or update a client record from package client fields.
@@ -124,7 +133,7 @@ async function adjustClientSpending(oldPkg: any, newPrice: number, newCurrency: 
 }
 
 // Public tracking endpoint (no auth) — looks up by track_token (secure) or package_code (legacy)
-router.get("/track/:token", async (req, res) => {
+router.get("/track/:token", publicLimiter, async (req, res) => {
   try {
     // Try track_token first (48-char hex), fall back to package_code for backwards compat
     const token = req.params.token;
@@ -164,7 +173,7 @@ router.get("/track/:token", async (req, res) => {
 
 // Public confirm delivery endpoint (no auth)
 // Client scans QR on the physical box; the scanned token must match the package's track_token.
-router.post("/confirm/:token", async (req, res) => {
+router.post("/confirm/:token", publicLimiter, async (req, res) => {
   try {
     const scanned_code = typeof req.body?.scanned_code === "string"
       ? req.body.scanned_code.trim().slice(0, 500)
@@ -261,6 +270,11 @@ router.get("/", async (req, res) => {
 
 router.get("/by-cargo/:cargoId", async (req, res) => {
   try {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(req.params.cargoId)) {
+      res.status(400).json({ message: "Invalid cargo ID format" });
+      return;
+    }
     const { rows } = await query(
       "SELECT * FROM packages WHERE cargo_id = $1 ORDER BY created_at DESC",
       [req.params.cargoId],
